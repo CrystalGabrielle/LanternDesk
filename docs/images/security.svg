@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520" role="img" aria-label="仅内网访问的安全边界示意">
+  <defs>
+    <marker id="qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4f46e5"/></marker>
+    <marker id="qb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker>
+    <marker id="qc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#d97706"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="520" fill="#f8fafc"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="36" y="44" font-size="25" font-weight="700" fill="#0f172a">内网边界 · 默认不对外</text>
+    <text x="36" y="70" font-size="14" fill="#64748b">站点没有任何公网入口；唯一可能的外连是用户主动配置 AI Key 之后的 HTTPS 请求</text>
+
+    <!-- 公网 -->
+    <rect x="30" y="106" width="214" height="130" rx="14" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
+    <text x="137" y="140" font-size="16" font-weight="700" fill="#b91c1c" text-anchor="middle">🌐 公网 Internet</text>
+    <text x="137" y="168" font-size="12" fill="#b91c1c" text-anchor="middle">外部访客 / 扫描器</text>
+    <text x="137" y="192" font-size="12" fill="#b91c1c" text-anchor="middle">无法访问本站</text>
+    <text x="137" y="216" font-size="11" fill="#dc2626" text-anchor="middle">无 DDNS · 无 FRP · 无隧道</text>
+
+    <!-- 路由器 -->
+    <rect x="272" y="106" width="214" height="130" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    <text x="379" y="140" font-size="16" font-weight="700" fill="#334155" text-anchor="middle">路由器 / 防火墙</text>
+    <text x="379" y="168" font-size="12" fill="#475569" text-anchor="middle">未配置端口转发</text>
+    <text x="379" y="192" font-size="12" fill="#475569" text-anchor="middle">未配置 DMZ / 反向代理</text>
+    <text x="379" y="216" font-size="11" fill="#64748b" text-anchor="middle">8090 只在 LAN 内可达</text>
+
+    <line x1="246" y1="171" x2="266" y2="171" stroke="#dc2626" stroke-width="3" marker-end="url(#qb)"/>
+    <text x="256" y="158" font-size="16" font-weight="700" fill="#dc2626" text-anchor="middle">✕</text>
+
+    <!-- 边界 -->
+    <line x1="510" y1="100" x2="510" y2="424" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="9 7"/>
+    <text x="510" y="92" font-size="12" font-weight="700" fill="#dc2626" text-anchor="middle">内网边界</text>
+
+    <!-- LAN -->
+    <rect x="534" y="106" width="636" height="318" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+    <text x="556" y="136" font-size="15" font-weight="700" fill="#166534">局域网 192.168.x.x / 10.x.x.x / 172.16-31.x.x</text>
+
+    <rect x="556" y="152" width="290" height="112" rx="12" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+    <text x="701" y="180" font-size="14" font-weight="700" fill="#166534" text-anchor="middle">Docker · lan-library : 8090</text>
+    <text x="701" y="204" font-size="11.5" fill="#15803d" text-anchor="middle">ports: "${HOST_IP}:8090:8090"　（不是 0.0.0.0）</text>
+    <text x="701" y="226" font-size="11.5" fill="#15803d" text-anchor="middle">isPrivate() 校验来源 IP，非私有地址一律 403</text>
+    <text x="701" y="248" font-size="11.5" fill="#15803d" text-anchor="middle">可选访问口令（scrypt + HttpOnly Cookie）</text>
+
+    <rect x="864" y="152" width="284" height="112" rx="12" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+    <text x="1006" y="180" font-size="14" font-weight="700" fill="#166534" text-anchor="middle">客户端：Win / macOS / 手机</text>
+    <text x="1006" y="204" font-size="11.5" fill="#15803d" text-anchor="middle">浏览器直连 http://内网IP:8090</text>
+    <text x="1006" y="226" font-size="11.5" fill="#15803d" text-anchor="middle">进度、书签、书架多端共享</text>
+    <text x="1006" y="248" font-size="11.5" fill="#15803d" text-anchor="middle">也可通过 SMB 只读浏览分类镜像</text>
+
+    <line x1="848" y1="208" x2="860" y2="208" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#qa)"/>
+
+    <rect x="556" y="284" width="592" height="118" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="576" y="310" font-size="13" font-weight="700" fill="#334155">分层防护清单</text>
+    <g font-size="11.5" fill="#475569">
+      <text x="576" y="334">① 端口只绑定指定内网 IP，不监听 0.0.0.0</text>
+      <text x="576" y="354">② 应用层拒绝非私有网段请求（403），即便误配端口转发也进不来</text>
+      <text x="576" y="374">③ 可选访问口令；API Key 只存本地 SQLite，响应中永不回传明文</text>
+      <text x="576" y="394">④ 静态资源做过目录穿越校验；原文件只读索引，删除默认只移出索引</text>
+    </g>
+
+    <line x1="488" y1="240" x2="528" y2="240" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#qa)"/>
+
+    <!-- AI 出站 -->
+    <rect x="936" y="446" width="234" height="52" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-dasharray="6 4"/>
+    <text x="1053" y="468" font-size="12" font-weight="600" fill="#b45309" text-anchor="middle">可选出站：AI 服务（需自行配置 Key）</text>
+    <text x="1053" y="486" font-size="11" fill="#d97706" text-anchor="middle">不配置时完全离线，站点本身不对外</text>
+    <line x1="856" y1="426" x2="948" y2="450" stroke="#d97706" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#qc)"/>
+
+    <text x="30" y="470" font-size="11.5" fill="#64748b">提示：本项目不是面向公网的 Web 应用，</text>
+    <text x="30" y="490" font-size="11.5" fill="#64748b">没有账号体系、限流与 WAF，请勿自行做外网穿透。</text>
+  </g>
+</svg>

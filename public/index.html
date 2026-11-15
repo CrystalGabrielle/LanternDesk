@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>内网图书馆</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="app">
+  <header class="topbar">
+    <button class="icon-btn menu-btn" id="btnMenu" aria-label="菜单"></button>
+    <div class="brand" id="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-text">内网图书馆</span>
+      <span class="brand-badge">LAN</span>
+    </div>
+    <div class="search-wrap">
+      <span class="search-ico" id="searchIco"></span>
+      <input id="searchInput" type="search" placeholder="搜索书名、作者、标签…" autocomplete="off">
+      <button class="icon-btn search-clear" id="btnSearchClear" aria-label="清空"></button>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="btnScan"><span class="ico" data-ico="sync"></span><span class="lbl">同步</span></button>
+      <button class="btn ghost" id="btnImport"><span class="ico" data-ico="upload"></span><span class="lbl">导入</span></button>
+      <button class="icon-btn" id="btnTheme" aria-label="切换主题"></button>
+      <button class="icon-btn" id="btnSettings" aria-label="设置"></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-scroll">
+        <section class="side-block">
+          <div class="side-title">书库</div>
+          <button class="side-item active" data-view="folders"><span class="ico" data-ico="folder"></span><span>按目录浏览</span></button>
+          <button class="side-item" data-view="all"><span class="ico" data-ico="grid"></span><span>全部藏书</span><em id="cntAll">0</em></button>
+          <button class="side-item" data-view="reading"><span class="ico" data-ico="clock"></span><span>继续阅读</span><em id="cntReading">0</em></button>
+          <button class="side-item" data-view="marks"><span class="ico" data-ico="bookmark"></span><span>我的书签</span><em id="cntMarks">0</em></button>
+          <button class="side-item" data-view="recent"><span class="ico" data-ico="spark"></span><span>最近添加</span></button>
+        </section>
+        <section class="side-block">
+          <div class="side-title">书架 <button class="mini-btn" id="btnAddShelf" title="新建书架">+</button></div>
+          <div id="shelfList"></div>
+        </section>
+        <section class="side-block">
+          <div class="side-title">分类</div>
+          <div id="catList" class="chip-list"></div>
+        </section>
+        <section class="side-block">
+          <div class="side-title">格式</div>
+          <div id="kindList"></div>
+        </section>
+        <div class="side-foot">
+          <div id="scanInfo"></div>
+          <div class="lan-note">仅局域网可访问 · 数据不出内网</div>
+        </div>
+      </div>
+    </aside>
+    <div class="side-mask" id="sideMask"></div>
+
+    <main class="main" id="main">
+      <div class="page-head">
+        <div>
+          <h1 id="pageTitle">全部藏书</h1>
+          <p id="pageDesc">正在载入…</p>
+        </div>
+        <div class="head-right">
+          <div class="mode-toggle" id="modeToggle">
+            <button id="modeFolders" class="active" title="按原始文件夹层级整理">按目录</button>
+            <button id="modeFlat" title="不分层级，平铺列出全部文件">平铺</button>
+          </div>
+          <select id="sortSelect" class="select">
+            <option value="recent">最近添加</option>
+            <option value="reading">最近阅读</option>
+            <option value="progress">阅读进度</option>
+            <option value="title">书名排序</option>
+            <option value="size">文件大小</option>
+          </select>
+          <div class="view-toggle">
+            <button class="icon-btn active" id="viewGrid" aria-label="网格"></button>
+            <button class="icon-btn" id="viewList" aria-label="列表"></button>
+          </div>
+        </div>
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="book-area" id="bookArea"></div>
+      <div class="pager" id="pager"></div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav">
+    <button class="m-item active" data-view="folders"><span class="ico" data-ico="folder"></span><span>书库</span></button>
+    <button class="m-item" data-view="shelves"><span class="ico" data-ico="shelf"></span><span>书架</span></button>
+    <button class="m-item" data-view="marks"><span class="ico" data-ico="bookmark"></span><span>书签</span></button>
+    <button class="m-item" data-view="ai"><span class="ico" data-ico="spark"></span><span>AI</span></button>
+    <button class="m-item" data-view="settings"><span class="ico" data-ico="settings"></span><span>设置</span></button>
+  </nav>
+</div>
+
+<!-- 阅读器 -->
+<div id="reader" class="reader hidden">
+  <div class="r-top">
+    <button class="icon-btn" id="rBack" aria-label="返回"></button>
+    <div class="r-title" id="rTitle"></div>
+    <div class="r-actions">
+      <button class="icon-btn" id="rToc" title="目录"></button>
+      <button class="icon-btn" id="rMark" title="添加书签"></button>
+      <button class="icon-btn" id="rAI" title="问 AI"></button>
+      <button class="icon-btn" id="rDownload" title="下载"></button>
+    </div>
+  </div>
+  <div class="r-body">
+    <div class="r-content" id="rContent">
+      <div class="r-stage" id="rStage"></div>
+    </div>
+    <aside class="r-panel hidden" id="rPanel">
+      <div class="rp-head"><span id="rpTitle">目录</span><button class="icon-btn" id="rpClose"></button></div>
+      <div class="rp-body" id="rpBody"></div>
+    </aside>
+    <aside class="ai-panel hidden" id="aiPanel">
+      <div class="ai-head">
+        <div><strong>阅读助手</strong><small id="aiModel"></small></div>
+        <div><button class="mini-btn" id="aiClear" title="清空对话">清空</button><button class="icon-btn" id="aiClose"></button></div>
+      </div>
+      <div class="ai-quick" id="aiQuick"></div>
+      <div class="ai-messages" id="aiMessages"></div>
+      <div class="ai-ctx" id="aiCtx"></div>
+      <div class="ai-input">
+        <textarea id="aiQuestion" rows="2" placeholder="就当前内容提问…（Ctrl+Enter 发送）"></textarea>
+        <button class="btn primary" id="aiSend">发送</button>
+      </div>
+    </aside>
+  </div>
+  <div class="r-bottom">
+    <button class="icon-btn" id="rPrev"></button>
+    <span class="r-loc" id="rLoc">—</span>
+    <input type="range" id="rProgress" min="0" max="1000" value="0">
+    <span class="r-pct" id="rPct">0%</span>
+    <button class="icon-btn" id="rNext"></button>
+    <button class="icon-btn" id="rZoomOut" title="缩小"></button>
+    <button class="icon-btn" id="rZoomIn" title="放大"></button>
+  </div>
+</div>
+
+<!-- 弹窗 / 提示 -->
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+<div id="loginMask" class="login-mask hidden">
+  <form class="login-card" id="loginForm">
+    <div class="brand-mark big"></div>
+    <h2>内网图书馆</h2>
+    <p>此站点已启用访问口令</p>
+    <input type="password" id="loginPin" placeholder="请输入访问口令" autocomplete="current-password">
+    <button class="btn primary wide" type="submit">进入</button>
+    <small id="loginErr"></small>
+  </form>
+</div>
+
+<script src="/vendor/jszip.min.js"></script>
+<script src="/vendor/pdf.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

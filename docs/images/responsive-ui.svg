@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" width="1200" height="540" role="img" aria-label="桌面与手机端响应式界面示意">
+  <rect x="0" y="0" width="1200" height="540" fill="#f8fafc"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="36" y="44" font-size="25" font-weight="700" fill="#0f172a">响应式界面 · 一套代码适配全平台</text>
+    <text x="36" y="70" font-size="14" fill="#64748b">原生 CSS 媒体查询，无前端框架；桌面侧栏、平板收窄、手机底部导航</text>
+
+    <!-- 桌面窗口 -->
+    <rect x="30" y="100" width="760" height="380" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="30" y="100" width="760" height="34" rx="14" fill="#e2e8f0"/>
+    <rect x="30" y="120" width="760" height="14" fill="#e2e8f0"/>
+    <circle cx="52" cy="117" r="5" fill="#f87171"/>
+    <circle cx="70" cy="117" r="5" fill="#fbbf24"/>
+    <circle cx="88" cy="117" r="5" fill="#34d399"/>
+    <rect x="120" y="108" width="420" height="19" rx="9" fill="#ffffff"/>
+    <text x="132" y="122" font-size="10" fill="#94a3b8">http://192.168.x.x:8090/</text>
+
+    <!-- 顶栏 -->
+    <rect x="30" y="134" width="760" height="40" fill="#ffffff" stroke="#f1f5f9"/>
+    <rect x="48" y="144" width="230" height="21" rx="10" fill="#f1f5f9"/>
+    <text x="60" y="159" font-size="10" fill="#94a3b8">🔍 搜索书名、作者、标签…</text>
+    <rect x="584" y="144" width="60" height="21" rx="6" fill="#eef2ff"/>
+    <text x="614" y="159" font-size="10" fill="#6366f1" text-anchor="middle">同步</text>
+    <rect x="652" y="144" width="60" height="21" rx="6" fill="#eef2ff"/>
+    <text x="682" y="159" font-size="10" fill="#6366f1" text-anchor="middle">导入</text>
+    <circle cx="738" cy="154" r="10" fill="#f1f5f9"/>
+    <circle cx="766" cy="154" r="10" fill="#f1f5f9"/>
+
+    <!-- 侧栏 -->
+    <rect x="30" y="174" width="158" height="306" fill="#fafafa"/>
+    <text x="46" y="198" font-size="10.5" font-weight="700" fill="#94a3b8">书库</text>
+    <rect x="42" y="206" width="134" height="22" rx="6" fill="#eef2ff"/>
+    <text x="52" y="221" font-size="10.5" fill="#4338ca">全部藏书　6211</text>
+    <text x="52" y="246" font-size="10.5" fill="#64748b">继续阅读</text>
+    <text x="52" y="268" font-size="10.5" fill="#64748b">我的书签</text>
+    <text x="46" y="300" font-size="10.5" font-weight="700" fill="#94a3b8">书架</text>
+    <text x="52" y="322" font-size="10.5" fill="#64748b">📚 小说文学</text>
+    <text x="52" y="344" font-size="10.5" fill="#64748b">📚 计算机</text>
+    <text x="52" y="366" font-size="10.5" fill="#64748b">📚 国学·哲学</text>
+    <text x="46" y="398" font-size="10.5" font-weight="700" fill="#94a3b8">分类</text>
+    <rect x="46" y="408" width="58" height="20" rx="10" fill="#ede9fe"/>
+    <text x="75" y="422" font-size="9.5" fill="#6d28d9" text-anchor="middle">电子书</text>
+    <rect x="110" y="408" width="58" height="20" rx="10" fill="#f1f5f9"/>
+    <text x="139" y="422" font-size="9.5" fill="#64748b" text-anchor="middle">音频</text>
+
+    <!-- 主区 -->
+    <text x="206" y="202" font-size="15" font-weight="700" fill="#1e293b">全部藏书</text>
+    <text x="206" y="220" font-size="9.5" fill="#94a3b8">共 6211 项资源 · 按原始目录层级整理</text>
+    <rect x="628" y="190" width="66" height="24" rx="7" fill="#4f46e5"/>
+    <text x="661" y="206" font-size="10" fill="#ffffff" text-anchor="middle">按目录</text>
+    <rect x="698" y="190" width="66" height="24" rx="7" fill="#f1f5f9"/>
+    <text x="731" y="206" font-size="10" fill="#64748b" text-anchor="middle">平铺</text>
+    <rect x="206" y="232" width="558" height="22" rx="6" fill="#f8fafc"/>
+    <text x="216" y="247" font-size="9.5" fill="#64748b">书库 › 小说 › 克苏鲁 › …</text>
+
+    <g>
+      <rect x="206" y="266" width="106" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="216" y="276" width="86" height="98" rx="5" fill="#c4b5fd"/>
+      <text x="259" y="330" font-size="10" fill="#4c1d95" text-anchor="middle">📁 套书</text>
+      <text x="259" y="390" font-size="10.5" font-weight="600" fill="#334155" text-anchor="middle">超越时空之影</text>
+      <text x="259" y="406" font-size="9" fill="#94a3b8" text-anchor="middle">9 话</text>
+    </g>
+    <g>
+      <rect x="324" y="266" width="106" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="334" y="276" width="86" height="98" rx="5" fill="#a5b4fc"/>
+      <text x="377" y="330" font-size="10" fill="#312e81" text-anchor="middle">📁 套书</text>
+      <text x="377" y="390" font-size="10.5" font-weight="600" fill="#334155" text-anchor="middle">疯狂山脉</text>
+      <text x="377" y="406" font-size="9" fill="#94a3b8" text-anchor="middle">6 话</text>
+    </g>
+    <g>
+      <rect x="442" y="266" width="106" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="452" y="276" width="86" height="98" rx="5" fill="#93c5fd"/>
+      <text x="495" y="330" font-size="10" fill="#1e3a8a" text-anchor="middle">📖 PDF</text>
+      <text x="495" y="390" font-size="10.5" font-weight="600" fill="#334155" text-anchor="middle">Python 入门</text>
+      <text x="495" y="406" font-size="9" fill="#94a3b8" text-anchor="middle">42%</text>
+    </g>
+    <g>
+      <rect x="560" y="266" width="106" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="570" y="276" width="86" height="98" rx="5" fill="#99f6e4"/>
+      <text x="613" y="330" font-size="10" fill="#115e59" text-anchor="middle">📖 EPUB</text>
+      <text x="613" y="390" font-size="10.5" font-weight="600" fill="#334155" text-anchor="middle">示例电子书</text>
+      <text x="613" y="406" font-size="9" fill="#94a3b8" text-anchor="middle">书签 2</text>
+    </g>
+    <g>
+      <rect x="678" y="266" width="86" height="150" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="688" y="276" width="66" height="98" rx="5" fill="#fde68a"/>
+      <text x="721" y="330" font-size="10" fill="#92400e" text-anchor="middle">📖 TXT</text>
+      <text x="721" y="390" font-size="10.5" font-weight="600" fill="#334155" text-anchor="middle">笔记</text>
+      <text x="721" y="406" font-size="9" fill="#94a3b8" text-anchor="middle">目录</text>
+    </g>
+    <text x="206" y="446" font-size="9.5" fill="#94a3b8">网格 / 列表切换 · 分页 · 深浅主题 · 右键菜单（书架、重命名、下载…）</text>
+
+    <!-- 手机 -->
+    <rect x="840" y="100" width="230" height="380" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="912" y="108" width="86" height="10" rx="5" fill="#e2e8f0"/>
+    <rect x="852" y="128" width="206" height="26" rx="13" fill="#f1f5f9"/>
+    <text x="864" y="145" font-size="9.5" fill="#94a3b8">🔍 搜索</text>
+    <text x="852" y="180" font-size="13" font-weight="700" fill="#1e293b">全部藏书</text>
+    <text x="852" y="196" font-size="9" fill="#94a3b8">书库 › 小说 › 克苏鲁 › …</text>
+    <rect x="1000" y="168" width="28" height="18" rx="5" fill="#4f46e5"/>
+    <text x="1014" y="181" font-size="8" fill="#ffffff" text-anchor="middle">目录</text>
+    <rect x="1030" y="168" width="28" height="18" rx="5" fill="#f1f5f9"/>
+    <text x="1044" y="181" font-size="8" fill="#64748b" text-anchor="middle">平铺</text>
+
+    <g>
+      <rect x="852" y="208" width="96" height="132" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="860" y="216" width="80" height="88" rx="5" fill="#c4b5fd"/>
+      <text x="900" y="265" font-size="9" fill="#4c1d95" text-anchor="middle">📁 套书</text>
+      <text x="900" y="320" font-size="9.5" font-weight="600" fill="#334155" text-anchor="middle">超越时空之影</text>
+      <text x="900" y="334" font-size="8.5" fill="#94a3b8" text-anchor="middle">9 话</text>
+    </g>
+    <g>
+      <rect x="962" y="208" width="96" height="132" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="970" y="216" width="80" height="88" rx="5" fill="#a5b4fc"/>
+      <text x="1010" y="265" font-size="9" fill="#312e81" text-anchor="middle">📁 套书</text>
+      <text x="1010" y="320" font-size="9.5" font-weight="600" fill="#334155" text-anchor="middle">疯狂山脉</text>
+      <text x="1010" y="334" font-size="8.5" fill="#94a3b8" text-anchor="middle">6 话</text>
+    </g>
+    <g>
+      <rect x="852" y="350" width="96" height="70" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="860" y="358" width="80" height="42" rx="5" fill="#93c5fd"/>
+      <text x="900" y="415" font-size="9" fill="#334155" text-anchor="middle">Python 入门</text>
+    </g>
+    <g>
+      <rect x="962" y="350" width="96" height="70" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="970" y="358" width="80" height="42" rx="5" fill="#99f6e4"/>
+      <text x="1010" y="415" font-size="9" fill="#334155" text-anchor="middle">示例电子书</text>
+    </g>
+    <rect x="840" y="432" width="230" height="48" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+    <g font-size="8.5" fill="#64748b" text-anchor="middle">
+      <text x="876" y="452">书库</text><text x="930" y="452">书架</text><text x="984" y="452">AI</text><text x="1038" y="452">书签</text><text x="1066" y="452">设置</text>
+      <text x="876" y="470">▣</text><text x="930" y="470">▤</text><text x="984" y="470">✦</text><text x="1038" y="470">🔖</text><text x="1066" y="470">⚙</text>
+    </g>
+
+    <rect x="840" y="494" width="330" height="30" rx="8" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text x="854" y="514" font-size="10.5" fill="#4338ca">≤ 760px：侧栏收起 / 底部 5 项导航 / 两列卡片 / 阅读器全屏</text>
+    <text x="36" y="514" font-size="10.5" fill="#64748b">图 4 · 界面线框示意（占位文字，非真实资料）。桌面侧栏 + 面包屑，窄屏自动切换为底部导航。</text>
+  </g>
+</svg>

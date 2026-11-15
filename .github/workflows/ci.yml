@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript syntax
+        run: |
+          for f in server/*.js public/app.js; do
+            node --check "$f" || exit 1
+          done
+          echo "JavaScript syntax OK"
+
+      - name: Private config is not committed
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error file=.env::Local config must never be committed"
+            exit 1
+          fi
+          test -f .env.example
+          if grep -nE '192\.168\.[0-9]+\.[0-9]+|/volume[0-9]/' docker-compose.yml Dockerfile; then
+            echo "::error::Hardcoded private address or NAS path in deploy config"
+            exit 1
+          fi
+          echo "No private config in tracked deploy files"
+
+      - name: Validate SVG diagrams
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = sorted(glob.glob('docs/images/*.svg'))
+          assert files, 'no SVG diagrams found'
+          for p in files:
+              ET.parse(p)
+          print('valid SVG:', len(files), 'files')
+          PY
+
+      - name: Check local documentation links
+        run: |
+          python3 - <<'PY'
+          import re, os, glob
+          docs = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CHANGELOG.md',
+                  'THIRD_PARTY_NOTICES.md'] + glob.glob('docs/*.md')
+          bad = []
+          for md in docs:
+              s = open(md, encoding='utf8').read()
+              for target in re.findall(r'\]\(([^)#]+)(?:#[^)]*)?\)', s):
+                  if target.startswith(('http://', 'https://', 'mailto:')):
+                      continue
+                  rel = target.split('#')[0]
+                  if not rel:
+                      continue
+                  p = os.path.normpath(os.path.join(os.path.dirname(md), rel))
+                  if not os.path.exists(p):
+                      bad.append((md, target))
+          if bad:
+              for b in bad:
+                  print('BROKEN LINK:', b)
+              raise SystemExit(1)
+          print('local links OK:', len(docs), 'documents')
+          PY
+
+      - name: Build Docker image
+        run: docker build -t lan-library:ci .

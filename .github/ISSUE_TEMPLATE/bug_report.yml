@@ -1,0 +1,77 @@
+name: "🐛 Bug 报告"
+description: 报告功能异常、渲染问题或部署失败
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先确认：
+        - 已看过 [部署与排障文档](https://github.com/<your-name>/lan-library/blob/main/docs/DEPLOYMENT.md) 中的常见问题；
+        - 这是**功能问题**。若涉及可绕过内网限制、读取资料目录以外的文件或删除原文件等安全漏洞，**请不要公开提交**，改按 [SECURITY.md](https://github.com/<your-name>/lan-library/blob/main/SECURITY.md) 私下报告；
+        - 描述中不要粘贴 `.env`、API Key、容器日志里的内网地址等私有信息。
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 运行环境
+      options:
+        - Docker Compose（Linux / 家庭服务器）
+        - 群晖 Container Manager
+        - Docker Desktop（Windows / macOS）
+        - 直接运行 Node.js（无 Docker）
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 提交
+      description: 例如 v0.2.0 或 commit hash；不知道可填「最新 main」
+      placeholder: "v0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: client
+    attributes:
+      label: 访问端
+      description: 浏览器与系统，例如「Chrome 131 / Windows 11」「Safari / iOS 18」
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 一步一步写清楚，最好附上涉及的目录层级或文件格式
+      placeholder: |
+        1. 打开 http://内网IP:8090
+        2. 进入「小说 / 克苏鲁 / …」
+        3. 点击某本 PDF
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果 / 实际结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图（可选）
+      description: 可贴 `docker compose logs` 的关键几行，或浏览器控制台报错；请先抹掉内网 IP 与 Key
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 确认
+      options:
+        - label: 我已确认站点只在局域网内访问，未做公网穿透
+          required: true
+        - label: 我已确认原文件没有被移动或删除
+          required: true

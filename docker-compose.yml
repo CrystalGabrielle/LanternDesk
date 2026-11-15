@@ -1,0 +1,33 @@
+# =============================================================================
+# LAN Library —— 仅局域网的数字图书馆
+# 所有可变配置都来自 .env（复制自 .env.example），本文件不含任何私有信息。
+# =============================================================================
+services:
+  lan-library:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lan-library
+    restart: unless-stopped
+
+    # 只绑定 .env 中指定的局域网 IP，绝不监听 0.0.0.0，不做任何外网映射 / 穿透。
+    # 未配置 HOST_IP 时默认只监听 127.0.0.1（最安全的兜底）。
+    ports:
+      - "${HOST_IP:-127.0.0.1}:${PORT:-8090}:8090"
+
+    environment:
+      PORT: 8090
+      DATA_DIR: /data
+      # 资料根目录与分类镜像共用同一个 bind mount，硬链接才不会跨挂载点失败（EXDEV）
+      BOOKS_ROOT: /lanpublic/${LIBRARY_SUBDIR:-学习资料}
+      PUBLIC_ROOT: /lanpublic
+      SCAN_INTERVAL_MIN: "${SCAN_INTERVAL_MIN:-10}"
+      TZ: "${TZ:-Asia/Shanghai}"
+
+    volumes:
+      # 资料目录的父目录：只读浏览原件 + 写入「_导入图书」与「_图书馆分类」
+      - "${PUBLIC_HOST:?请先在 .env 中填写 PUBLIC_HOST（资料目录的父目录）}:/lanpublic:rw"
+      # 网站自身数据（SQLite、封面缓存、配置），与资料分离，容器重建不丢
+      - "${DATA_HOST:-./data}:/data:rw"
+
+    stop_grace_period: 15s

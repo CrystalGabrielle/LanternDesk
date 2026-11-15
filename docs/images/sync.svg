@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" role="img" aria-label="阅读进度跨端同步与自动扫描数据流">
+  <defs>
+    <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4f46e5"/></marker>
+    <marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker>
+    <marker id="sc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#d97706"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="620" fill="#f8fafc"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="36" y="44" font-size="25" font-weight="700" fill="#0f172a">数据流动 · 跨端续读与自动同步</text>
+    <text x="36" y="70" font-size="14" fill="#64748b">所有状态集中存在服务端的 SQLite，任何设备打开都是同一份；书籍文件本身始终留在原处</text>
+
+    <!-- 上半：进度同步 -->
+    <rect x="30" y="94" width="1140" height="236" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="48" y="122" font-size="15" font-weight="700" fill="#4338ca">① 阅读进度 / 书签的跨设备同步</text>
+
+    <rect x="52" y="142" width="180" height="46" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text x="142" y="170" font-size="13" font-weight="600" fill="#4338ca" text-anchor="middle">💻 PC 浏览器</text>
+    <rect x="510" y="142" width="180" height="46" rx="10" fill="#ecfeff" stroke="#a5f3fc"/>
+    <text x="600" y="170" font-size="13" font-weight="600" fill="#0e7490" text-anchor="middle">SQLite · progress</text>
+    <rect x="968" y="142" width="180" height="46" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="1058" y="170" font-size="13" font-weight="600" fill="#166534" text-anchor="middle">📱 手机浏览器</text>
+
+    <line x1="142" y1="190" x2="142" y2="300" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <line x1="600" y1="190" x2="600" y2="300" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <line x1="1058" y1="190" x2="1058" y2="300" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+    <line x1="148" y1="212" x2="504" y2="212" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#sa)"/>
+    <text x="326" y="204" font-size="12" fill="#4f46e5" text-anchor="middle">1 · PUT /api/progress/{id}　{page:3, percent:42.5, device:"PC"}</text>
+    <text x="326" y="232" font-size="11" fill="#94a3b8" text-anchor="middle">翻页 / 滚动时自动保存，书签另写 bookmarks 表</text>
+
+    <line x1="596" y1="264" x2="1052" y2="264" stroke="#0f766e" stroke-width="2.5" marker-end="url(#sb)"/>
+    <text x="824" y="256" font-size="12" fill="#0f766e" text-anchor="middle">3 · GET /api/progress/{id} → 返回上次位置</text>
+    <text x="824" y="284" font-size="11" fill="#94a3b8" text-anchor="middle">2 · 服务端按 book_id upsert；4 · 前端提示「跳转到上次阅读位置」</text>
+
+    <rect x="52" y="296" width="1096" height="22" rx="6" fill="#f8fafc"/>
+    <text x="62" y="312" font-size="11.5" fill="#64748b">同一本书的进度以 book_id 为主键，多端共享；书签含 label / note / locator，可一键跳转。</text>
+
+    <!-- 下半：扫描 -->
+    <rect x="30" y="348" width="1140" height="214" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="48" y="376" font-size="15" font-weight="700" fill="#b45309">② 目录自动扫描（每 N 分钟 + 网页「同步」按钮）</text>
+
+    <rect x="52" y="396" width="176" height="76" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="140" y="424" font-size="13" font-weight="600" fill="#b45309" text-anchor="middle">定时 / 手动触发</text>
+    <text x="140" y="446" font-size="11" fill="#d97706" text-anchor="middle">递归遍历资料目录</text>
+    <text x="140" y="462" font-size="11" fill="#d97706" text-anchor="middle">跳过 @eaDir / 隐藏文件</text>
+
+    <rect x="262" y="396" width="196" height="76" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="360" y="424" font-size="13" font-weight="600" fill="#b45309" text-anchor="middle">对比 path / size / mtime</text>
+    <text x="360" y="446" font-size="11" fill="#d97706" text-anchor="middle">新增 → 分类 + 标签 + 书架</text>
+    <text x="360" y="462" font-size="11" fill="#d97706" text-anchor="middle">减少 → 标记 missing（不删盘）</text>
+
+    <rect x="492" y="396" width="196" height="76" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="590" y="424" font-size="13" font-weight="600" fill="#b45309" text-anchor="middle">重算目录层级</text>
+    <text x="590" y="446" font-size="11" fill="#d97706" text-anchor="middle">dir_path / is_asset</text>
+    <text x="590" y="462" font-size="11" fill="#d97706" text-anchor="middle">封面素材不再当作一本书</text>
+
+    <rect x="722" y="396" width="196" height="76" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="820" y="424" font-size="13" font-weight="600" fill="#166534" text-anchor="middle">更新索引与书架</text>
+    <text x="820" y="446" font-size="11" fill="#15803d" text-anchor="middle">书架是关联表，调整归属</text>
+    <text x="820" y="462" font-size="11" fill="#15803d" text-anchor="middle">不影响文件存储位置</text>
+
+    <rect x="952" y="396" width="196" height="76" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text x="1050" y="424" font-size="13" font-weight="600" fill="#4338ca" text-anchor="middle">前端立即呈现</text>
+    <text x="1050" y="446" font-size="11" fill="#6366f1" text-anchor="middle">层级树 / 分类 / 搜索</text>
+    <text x="1050" y="462" font-size="11" fill="#6366f1" text-anchor="middle">可按需重建分类镜像</text>
+
+    <line x1="230" y1="434" x2="256" y2="434" stroke="#d97706" stroke-width="2.5" marker-end="url(#sc)"/>
+    <line x1="460" y1="434" x2="486" y2="434" stroke="#d97706" stroke-width="2.5" marker-end="url(#sc)"/>
+    <line x1="690" y1="434" x2="716" y2="434" stroke="#d97706" stroke-width="2.5" marker-end="url(#sc)"/>
+    <line x1="920" y1="434" x2="946" y2="434" stroke="#d97706" stroke-width="2.5" marker-end="url(#sc)"/>
+
+    <text x="52" y="510" font-size="11.5" fill="#64748b">删除图书默认只「移出图书馆」（hidden=1），磁盘文件保留；仅导入的书支持二次确认后彻底删除。</text>
+    <text x="52" y="534" font-size="11.5" fill="#64748b">外部导入：写入 _导入图书/分类/主题/ → 同名自动加后缀不覆盖 → 立刻进索引与对应书架。</text>
+
+    <text x="36" y="596" font-size="12" fill="#94a3b8">图 3 · 一切「整理」都发生在索引层：分类、书架、层级、进度、书签均为数据库记录。</text>
+  </g>
+</svg>

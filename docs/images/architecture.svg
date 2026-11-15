@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-label="LAN Library 系统架构示意图">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4f46e5"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#d97706"/></marker>
+    <marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="680" fill="#f8fafc"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="36" y="44" font-size="25" font-weight="700" fill="#0f172a">LAN Library · 系统架构</text>
+    <text x="36" y="70" font-size="14" fill="#64748b">单容器 / 零 npm 依赖 / 原文件零搬移 / 仅局域网</text>
+
+    <!-- 公网禁止 -->
+    <rect x="30" y="112" width="196" height="74" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5"/>
+    <text x="128" y="140" font-size="14" font-weight="600" fill="#b91c1c" text-anchor="middle">公网 / Internet</text>
+    <text x="128" y="163" font-size="12" fill="#b91c1c" text-anchor="middle">无端口映射 · 无穿透</text>
+    <line x1="228" y1="149" x2="286" y2="149" stroke="#dc2626" stroke-width="2.5" marker-end="url(#ax)"/>
+    <text x="256" y="139" font-size="13" font-weight="700" fill="#dc2626" text-anchor="middle">✕</text>
+    <text x="256" y="180" font-size="11" fill="#b91c1c" text-anchor="middle">403</text>
+
+    <!-- 客户端 -->
+    <text x="36" y="238" font-size="13" font-weight="600" fill="#475569">同一局域网内的设备</text>
+    <rect x="30" y="252" width="196" height="74" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="128" y="281" font-size="15" font-weight="600" fill="#1e293b" text-anchor="middle">🖥️ Windows / macOS</text>
+    <text x="128" y="304" font-size="12" fill="#64748b" text-anchor="middle">浏览器（响应式）</text>
+    <rect x="30" y="340" width="196" height="74" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="128" y="369" font-size="15" font-weight="600" fill="#1e293b" text-anchor="middle">📱 手机 / 平板</text>
+    <text x="128" y="392" font-size="12" fill="#64748b" text-anchor="middle">底部导航 + 触摸阅读</text>
+    <rect x="30" y="428" width="196" height="74" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="128" y="457" font-size="15" font-weight="600" fill="#1e293b" text-anchor="middle">📚 文件管理器</text>
+    <text x="128" y="480" font-size="12" fill="#64748b" text-anchor="middle">SMB 访问分类镜像</text>
+
+    <!-- 内网边界 -->
+    <rect x="290" y="100" width="620" height="500" rx="18" fill="#eef2ff" stroke="#a5b4fc" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="312" y="130" font-size="15" font-weight="700" fill="#4338ca">局域网 LAN · 192.168.x.x（服务端还会拒绝非私有 IP）</text>
+
+    <!-- 容器 -->
+    <rect x="314" y="150" width="572" height="230" rx="14" fill="#ffffff" stroke="#c7d2fe" stroke-width="2"/>
+    <rect x="314" y="150" width="572" height="36" rx="14" fill="#4f46e5"/>
+    <rect x="314" y="172" width="572" height="14" fill="#4f46e5"/>
+    <text x="332" y="174" font-size="14" font-weight="700" fill="#ffffff">Docker 容器 · lan-library （Node 22 + node:sqlite）</text>
+
+    <rect x="332" y="202" width="164" height="66" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="414" y="228" font-size="13" font-weight="600" fill="#5b21b6" text-anchor="middle">HTTP / 静态前端</text>
+    <text x="414" y="250" font-size="11" fill="#7c3aed" text-anchor="middle">原生 JS · 响应式 UI</text>
+
+    <rect x="510" y="202" width="164" height="66" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="592" y="228" font-size="13" font-weight="600" fill="#5b21b6" text-anchor="middle">扫描 / 智能分类</text>
+    <text x="592" y="250" font-size="11" fill="#7c3aed" text-anchor="middle">增量同步 · 目录树</text>
+
+    <rect x="688" y="202" width="180" height="66" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="778" y="228" font-size="13" font-weight="600" fill="#5b21b6" text-anchor="middle">阅读器 / 封面服务</text>
+    <text x="778" y="250" font-size="11" fill="#7c3aed" text-anchor="middle">PDF.js · JSZip · 缓存</text>
+
+    <rect x="332" y="284" width="260" height="76" rx="10" fill="#ecfeff" stroke="#a5f3fc"/>
+    <text x="462" y="311" font-size="13" font-weight="600" fill="#0e7490" text-anchor="middle">SQLite 索引（library.db）</text>
+    <text x="462" y="333" font-size="11" fill="#0891b2" text-anchor="middle">分类 · 书架 · 进度 · 书签 · 设置</text>
+    <text x="462" y="350" font-size="11" fill="#0891b2" text-anchor="middle">原文件不入库、不搬移、不删除</text>
+
+    <rect x="608" y="284" width="260" height="76" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="738" y="311" font-size="13" font-weight="600" fill="#b45309" text-anchor="middle">AI 代理（可选）</text>
+    <text x="738" y="333" font-size="11" fill="#d97706" text-anchor="middle">OpenAI 兼容 /chat/completions · SSE 流式</text>
+    <text x="738" y="350" font-size="11" fill="#d97706" text-anchor="middle">API Key 只存在本机数据库</text>
+
+    <!-- 存储 -->
+    <text x="314" y="408" font-size="14" font-weight="700" fill="#4338ca">主机文件系统（bind mount，同一挂载点）</text>
+    <rect x="314" y="422" width="134" height="76" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="381" y="450" font-size="12" font-weight="600" fill="#166534" text-anchor="middle">资料目录</text>
+    <text x="381" y="470" font-size="11" fill="#15803d" text-anchor="middle">只读索引</text>
+    <text x="381" y="487" font-size="11" fill="#15803d" text-anchor="middle">原件永不删除</text>
+
+    <rect x="458" y="422" width="134" height="76" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="525" y="450" font-size="12" font-weight="600" fill="#166534" text-anchor="middle">_导入图书</text>
+    <text x="525" y="470" font-size="11" fill="#15803d" text-anchor="middle">外部导入</text>
+    <text x="525" y="487" font-size="11" fill="#15803d" text-anchor="middle">按分类落盘</text>
+
+    <rect x="602" y="422" width="134" height="76" rx="10" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="669" y="450" font-size="12" font-weight="600" fill="#166534" text-anchor="middle">_图书馆分类</text>
+    <text x="669" y="470" font-size="11" fill="#15803d" text-anchor="middle">硬链接镜像</text>
+    <text x="669" y="487" font-size="11" fill="#15803d" text-anchor="middle">零额外空间</text>
+
+    <rect x="746" y="422" width="140" height="76" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="816" y="450" font-size="12" font-weight="600" fill="#334155" text-anchor="middle">data/</text>
+    <text x="816" y="470" font-size="11" fill="#475569" text-anchor="middle">数据库 / 封面缓存</text>
+    <text x="816" y="487" font-size="11" fill="#475569" text-anchor="middle">独立持久化卷</text>
+
+    <text x="314" y="534" font-size="12" fill="#6366f1">容器只暴露一个内网端口 8090；访问口令可在网页设置中开启。</text>
+    <text x="314" y="560" font-size="12" fill="#6366f1">PDF/EPUB/TXT/MOBI/DOCX 网页内阅读，音视频支持播放或下载。</text>
+
+    <!-- 箭头：客户端到容器 -->
+    <line x1="228" y1="289" x2="308" y2="289" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#ar)"/>
+    <text x="268" y="278" font-size="11" fill="#4f46e5" text-anchor="middle">HTTP</text>
+    <line x1="600" y1="382" x2="600" y2="416" stroke="#0f766e" stroke-width="2.5" marker-end="url(#ag)"/>
+    <text x="612" y="404" font-size="11" fill="#0f766e">读写</text>
+
+    <!-- AI 云 -->
+    <rect x="936" y="180" width="234" height="176" rx="14" fill="#fffbeb" stroke="#fcd34d" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="1053" y="210" font-size="15" font-weight="700" fill="#b45309" text-anchor="middle">可选：公网 AI 服务</text>
+    <rect x="956" y="226" width="194" height="34" rx="8" fill="#ffffff" stroke="#fde68a"/>
+    <text x="1053" y="248" font-size="12" fill="#92400e" text-anchor="middle">DeepSeek / 豆包</text>
+    <rect x="956" y="268" width="194" height="34" rx="8" fill="#ffffff" stroke="#fde68a"/>
+    <text x="1053" y="290" font-size="12" fill="#92400e" text-anchor="middle">自定义 OpenAI 兼容端点</text>
+    <text x="1053" y="330" font-size="11" fill="#b45309" text-anchor="middle">唯一可能的外连，需自行填写 Key</text>
+    <text x="1053" y="346" font-size="11" fill="#b45309" text-anchor="middle">不配置时功能完全离线</text>
+    <line x1="888" y1="268" x2="930" y2="268" stroke="#d97706" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#ao)"/>
+    <text x="909" y="258" font-size="10" fill="#d97706" text-anchor="middle">HTTPS</text>
+
+    <rect x="936" y="392" width="234" height="118" rx="14" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="1053" y="420" font-size="14" font-weight="700" fill="#334155" text-anchor="middle">内置第三方库（离线可用）</text>
+    <text x="1053" y="446" font-size="12" fill="#475569" text-anchor="middle">PDF.js 3.11（Apache-2.0）</text>
+    <text x="1053" y="468" font-size="12" fill="#475569" text-anchor="middle">JSZip 3.10（MIT / GPLv3）</text>
+    <text x="1053" y="490" font-size="12" fill="#475569" text-anchor="middle">Node.js 22 · node:sqlite</text>
+
+    <text x="36" y="640" font-size="12" fill="#94a3b8">图 1 · 架构总览：客户端 → 内网容器 → 索引与资料；AI 为可选外连，公网入口始终关闭。</text>
+  </g>
+</svg>

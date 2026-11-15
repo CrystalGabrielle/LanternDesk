@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" role="img" aria-label="磁盘目录层级如何映射成图书馆的套书视图">
+  <defs>
+    <marker id="hv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#4f46e5"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="640" fill="#f8fafc"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="36" y="44" font-size="25" font-weight="700" fill="#0f172a">目录层级整理 · 分回不再混在一起</text>
+    <text x="36" y="70" font-size="14" fill="#64748b">索引按磁盘真实目录链建树，序号型目录自动聚合成「套书」，原文件一个字节都不动</text>
+
+    <!-- 左：磁盘树 -->
+    <rect x="30" y="96" width="470" height="466" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <rect x="30" y="96" width="470" height="38" rx="14" fill="#0f766e"/>
+    <rect x="30" y="120" width="470" height="14" fill="#0f766e"/>
+    <text x="48" y="121" font-size="14" font-weight="700" fill="#ffffff">① 磁盘上的真实目录（只读）</text>
+
+    <g font-size="13" fill="#334155">
+      <text x="54" y="168" font-weight="700">📁 学习资料/</text>
+      <text x="78" y="198">📁 小说/</text>
+      <text x="102" y="228">📁 克苏鲁/</text>
+      <text x="126" y="258">📁 K｜[克苏鲁] 洛夫克拉夫特×田边刚/</text>
+      <text x="150" y="288" fill="#4f46e5" font-weight="700">📁 超越时空之影/</text>
+      <text x="176" y="316" fill="#64748b">第01回.pdf　第02回.pdf　第03回.pdf … 第09回.pdf</text>
+      <text x="150" y="348" fill="#4f46e5" font-weight="700">📁 印斯茅斯之影/</text>
+      <text x="176" y="376" fill="#64748b">上卷.pdf　下卷.pdf　封面.webp</text>
+      <text x="150" y="408">📁 疯狂山脉/</text>
+      <text x="126" y="440">📁 幻梦境断章/（3 篇独立短篇 → 普通文件夹）</text>
+      <text x="78" y="472">📁 计算机/</text>
+      <text x="102" y="500" fill="#64748b">Python 入门.pdf　前端指南.epub …</text>
+    </g>
+    <rect x="52" y="518" width="426" height="30" rx="8" fill="#f0fdfa" stroke="#99f6e4"/>
+    <text x="66" y="538" font-size="11.5" fill="#0f766e">不同套书里都有「第01回」，靠完整路径区分，绝不合并</text>
+
+    <!-- 中间箭头 -->
+    <line x1="504" y1="300" x2="610" y2="300" stroke="#4f46e5" stroke-width="3" marker-end="url(#hv)"/>
+    <rect x="504" y="248" width="106" height="34" rx="8" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text x="557" y="270" font-size="12" font-weight="600" fill="#4338ca" text-anchor="middle">GET /api/tree</text>
+    <text x="557" y="332" font-size="11.5" fill="#6366f1" text-anchor="middle">构建前缀树</text>
+    <text x="557" y="350" font-size="11.5" fill="#6366f1" text-anchor="middle">自动展开空目录链</text>
+    <text x="557" y="368" font-size="11.5" fill="#6366f1" text-anchor="middle">章节自然序排列</text>
+
+    <!-- 右：UI -->
+    <rect x="626" y="96" width="544" height="466" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <rect x="626" y="96" width="544" height="38" rx="14" fill="#4f46e5"/>
+    <rect x="626" y="120" width="544" height="14" fill="#4f46e5"/>
+    <text x="644" y="121" font-size="14" font-weight="700" fill="#ffffff">② 网页里看到的层级视图</text>
+
+    <rect x="646" y="150" width="504" height="34" rx="8" fill="#f1f5f9"/>
+    <text x="660" y="172" font-size="12" fill="#475569">书库 › 小说 › 克苏鲁 › K｜[克苏鲁]… › 超越时空之影</text>
+
+    <text x="648" y="210" font-size="12" font-weight="600" fill="#64748b">套书卡片（由目录自动聚合）</text>
+    <rect x="646" y="220" width="230" height="112" rx="10" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.5"/>
+    <rect x="660" y="234" width="62" height="84" rx="5" fill="#7c3aed"/>
+    <text x="691" y="278" font-size="11" fill="#ffffff" text-anchor="middle">封面</text>
+    <text x="691" y="296" font-size="11" fill="#ffffff" text-anchor="middle">图</text>
+    <text x="736" y="256" font-size="14" font-weight="700" fill="#5b21b6">超越时空之影</text>
+    <text x="736" y="280" font-size="11.5" fill="#7c3aed">共 9 话 · PDF 漫画</text>
+    <text x="736" y="304" font-size="11.5" fill="#7c3aed">分册自动识别</text>
+    <rect x="800" y="240" width="66" height="24" rx="12" fill="#ede9fe"/>
+    <text x="833" y="256" font-size="11" fill="#6d28d9" text-anchor="middle">9 话</text>
+
+    <rect x="890" y="220" width="260" height="112" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+    <text x="908" y="248" font-size="13" font-weight="700" fill="#166534">另一套：印斯茅斯之影</text>
+    <text x="908" y="272" font-size="11.5" fill="#15803d">2 卷 · 使用同目录的「封面.webp」</text>
+    <text x="908" y="296" font-size="11.5" fill="#15803d">与上面的 9 话互不混淆</text>
+    <text x="908" y="318" font-size="11.5" fill="#15803d">保留独立路径，不跨目录合并</text>
+
+    <text x="648" y="362" font-size="12" font-weight="600" fill="#64748b">点进套书：章节按自然序展示，各自记录阅读进度</text>
+    <g>
+      <rect x="646" y="374" width="152" height="152" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="662" y="388" width="120" height="96" rx="6" fill="#c4b5fd"/>
+      <text x="722" y="440" font-size="12" fill="#4c1d95" text-anchor="middle">首页封面</text>
+      <text x="722" y="500" font-size="12.5" font-weight="600" fill="#1e293b" text-anchor="middle">第 01 回</text>
+      <text x="722" y="517" font-size="10.5" fill="#94a3b8" text-anchor="middle">PDF · 32 KB 封面</text>
+    </g>
+    <g>
+      <rect x="812" y="374" width="152" height="152" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="828" y="388" width="120" height="96" rx="6" fill="#a5b4fc"/>
+      <text x="888" y="440" font-size="12" fill="#312e81" text-anchor="middle">首页封面</text>
+      <text x="888" y="500" font-size="12.5" font-weight="600" fill="#1e293b" text-anchor="middle">第 02 回</text>
+      <text x="888" y="517" font-size="10.5" fill="#94a3b8" text-anchor="middle">PDF · 32 KB 封面</text>
+    </g>
+    <g>
+      <rect x="978" y="374" width="172" height="152" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+      <rect x="994" y="388" width="140" height="96" rx="6" fill="#93c5fd"/>
+      <text x="1064" y="440" font-size="12" fill="#1e3a8a" text-anchor="middle">首页封面</text>
+      <text x="1064" y="500" font-size="12.5" font-weight="600" fill="#1e293b" text-anchor="middle">第 03 回 … 第 09 回</text>
+      <text x="1064" y="517" font-size="10.5" fill="#94a3b8" text-anchor="middle">按回目顺序，不按文件名乱序</text>
+    </g>
+
+    <text x="36" y="600" font-size="12" fill="#94a3b8">图 2 · 分类镜像同样保留原始目录链：_图书馆分类 / 分类 / 原目录链 / 文件名（硬链接，零额外空间）。</text>
+  </g>
+</svg>
