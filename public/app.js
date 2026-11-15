@@ -1,4 +1,4 @@
-/* 内网图书馆 —— 前端主逻辑（原生 JS，无构建步骤） */
+/* 灯下 · Lantern Desk —— 前端主逻辑：书库、工作台、阅读器（原生 JS，无构建步骤） */
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -37,7 +37,11 @@ const ICONS = {
   zoomout: '<circle cx="10" cy="10" r="7"/><path d="m20 20-4-4M7 10h6"/>',
   send: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
-  external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
+  external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5M3 17l9 5 9-5"/>',
+  wand: '<path d="m4 20 12-12 3 3L7 23z"/><path d="M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM20 9l.7 1.8 1.8.7-1.8.7L20 14l-.7-1.8-1.8-.7 1.8-.7z"/>'
 };
 const icon = n => `<span class="ico"><svg viewBox="0 0 24 24">${ICONS[n] || ICONS.file}</svg></span>`;
 function hydrate(root = document) {
@@ -74,10 +78,13 @@ const S = {
   q: '', page: 1, size: 60, sort: 'recent', layout: 'grid', favorite: false,
   treeMode: localStorage.getItem('ll_mode') !== 'flat', path: '', tree: null, noDrill: false,
   state: {}, facets: {}, shelves: [], books: [], total: 0,
+  work: { files: [], total: 0, page: 1, size: 100, project: '', month: '', type: '', status: '',
+    q: '', group: 'project', projects: [], facets: {}, stats: {} },
   theme: localStorage.getItem('ll_theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 };
 // 层级模式只在「书库」且没有搜索词时生效；搜索、继续阅读、书签用平铺更合适
 const useTree = () => S.treeMode && !S.q && S.view === 'all' && !S.favorite;
+const isWork = () => S.view === 'work';
 // 目录位置写进 URL，刷新、换设备或分享链接都能回到同一层
 try { const p = new URLSearchParams(location.search).get('path'); if (p) S.path = p; } catch {}
 document.documentElement.dataset.theme = S.theme;
@@ -306,6 +313,22 @@ function renderBooks() {
 
 /* ------------------------------ 目录层级视图 ------------------------------ */
 function updateHead(tree) {
+  // 工作台有独立的筛选条与分组视图，隐藏书库专用的排序 / 平铺 / 网格控件
+  const workOn = isWork();
+  $('#workBar').classList.toggle('hidden', !workOn);
+  $('#filterBar').classList.toggle('hidden', workOn);
+  $('#sortSelect').style.display = workOn ? 'none' : '';
+  const vt = $('.view-toggle'); if (vt) vt.style.display = workOn ? 'none' : '';
+  if (workOn) {
+    const st = S.work.stats || {};
+    $('#pageTitle').textContent = '工作台 · 工作文件';
+    $('#pageDesc').textContent = `共 ${st.total || 0} 份文件 · ${st.projects || 0} 个项目 · ${st.unassigned || 0} 份待归档；自动识别项目、日期与文档类型，原件零搬移`;
+    $('#modeToggle').style.display = 'none';
+    $('#crumbs').classList.add('hidden');
+    $('#pager').innerHTML = '';
+    renderWorkBar();
+    return;
+  }
   const titles = { all: '全部藏书', reading: '继续阅读', marks: '我的书签', recent: '最近添加' };
   const shelf = S.shelves.find(x => x.id === S.shelf);
   const inTree = useTree();
@@ -403,6 +426,7 @@ async function loadFlat() {
 }
 async function loadBooks() {
   updateHead(null);
+  if (isWork()) return loadWork();
   if (S.view === 'marks') return loadMarksView();
   if (useTree()) return loadTree();
   return loadFlat();
@@ -456,18 +480,28 @@ function setView(v) {
   if (v === 'folders') { S.view = 'all'; S.treeMode = true; localStorage.setItem('ll_mode', 'tree'); }
   else if (v === 'all') { S.view = 'all'; S.treeMode = false; localStorage.setItem('ll_mode', 'flat'); }
   else S.view = v;
+  $('#searchInput').placeholder = v === 'work' ? '搜索工作文件、项目、备注…' : '搜索书名、作者、标签…';
+  if ($('#btnImport .lbl')) $('#btnImport .lbl').textContent = v === 'work' ? '导入文件' : '导入';
   setViewVisual(); renderFilters(); loadBooks(); closeSide();
 }
 function closeSide() { $('#sidebar').classList.remove('open'); $('#sideMask').classList.remove('show'); }
 async function refreshMeta() {
-  const [st, fc, sh] = await Promise.all([req('/state'), req('/facets'), req('/shelves')]);
+  const [st, fc, sh, wf, wp] = await Promise.all([
+    req('/state'), req('/facets'), req('/shelves'), req('/work/facets'), req('/work/projects')
+  ]);
   S.state = st; S.facets = fc; S.shelves = sh.shelves;
+  S.work.facets = wf; S.work.projects = wp.projects; S.work.stats = st.work || {};
   $('#cntAll').textContent = st.total; $('#cntReading').textContent = st.reading; $('#cntMarks').textContent = st.marks;
-  $('#scanInfo').innerHTML = `上次同步：${fmtDate(st.lastScanAt)}<br>共 ${st.total} 项 · ${st.shelves} 个书架<br>自动扫描每 ${st.intervalMin} 分钟`;
+  $('#cntWork').textContent = (st.work || {}).total || 0;
+  $('#scanInfo').innerHTML = `上次同步：${fmtDate(st.lastScanAt)}<br>共 ${st.total} 项 · ${st.shelves} 个书架<br>工作文件 ${(st.work || {}).total || 0} 份 · ${(st.work || {}).projects || 0} 个项目<br>自动扫描每 ${st.intervalMin} 分钟`;
   renderFacets(); renderShelves(); setViewVisual();
 }
 async function boot() {
   try { await refreshMeta(); } catch (e) { if (e.message === '__AUTH__') return; console.error(e); toast('初始化失败：' + e.message); }
+  // 支持 ?view=work 直接进入工作台，方便把某个空间作为书签 / 分享链接
+  try {
+    if (new URLSearchParams(location.search).get('view') === 'work') return setView('work');
+  } catch {}
   renderFilters(); await loadBooks();
 }
 
@@ -498,6 +532,7 @@ $('#btnScan').onclick = async () => {
   catch (e) { toast('同步失败：' + e.message); }
 };
 $('#btnSettings').onclick = settingsModal;
+$('#btnImport').onclick = () => importModal(isWork() ? 'work' : 'book');
 $('#btnAddShelf').onclick = () => shelfModal(null);
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();
@@ -526,6 +561,10 @@ $('#bookArea').addEventListener('click', async e => {
       { label: '加入 / 移出书架', icon: 'shelf', fn: () => shelfPicker(b) },
       { label: '编辑资料', icon: 'edit', fn: () => bookEditModal(b) },
       { label: '下载原文件', icon: 'download', fn: () => location.href = '/api/download/' + b.id },
+      { label: '加入工作台（识别项目 / 日期）', icon: 'briefcase', fn: async () => {
+        try { await req('/work/adopt', { method: 'POST', body: { bookId: b.id } }); toast('已加入工作台，原件位置不变'); await refreshMeta(); }
+        catch (err) { toast(err.message); }
+      } },
       { sep: true },
       { label: '移出图书馆（文件保留）', icon: 'trash', danger: true, fn: () => confirmBox('移出图书馆',
         `将《${esc(b.title)}》从图书馆中移除。<br><b>磁盘上的原文件不会被删除</b>，之后重新同步可恢复。`,
@@ -601,14 +640,29 @@ function bookEditModal(b) {
 }
 
 /* ------------------------------ 导入 ------------------------------ */
-function importModal() {
-  const m = modal({ title: '从外部导入图书', wide: true,
-    body: `<div class="import-zone" id="iz">${icon('upload')}<strong>点击选择，或把文件拖到这里</strong><span>支持 PDF / EPUB / TXT / MOBI / DOCX 及任意资料文件，可多选</span></div>
+function importModal(kind = 'book') {
+  let mode = kind;
+  const bookHint = `导入后系统会按文件名与内容关键词<b>智能分类</b>，存放到资料目录的 <b>_导入图书/分类/主题/</b> 下，并自动加入索引与对应书架。同名文件不会被覆盖，原始文件始终保持完整。`;
+  const workHint = `导入 Word / PPT / Excel / PDF / 图片等<b>工作文件</b>后，系统会自动识别<b>所属项目、业务日期、文档类型</b>，归档到 <b>_工作文件/项目/年/年月/</b>。识别来源会标注（文件名 / 文档属性 / 修改时间），之后可随时手动修正。原件不会移动或删除。`;
+  const m = modal({ title: '导入文件', wide: true,
+    body: `<div class="import-tabs">
+        <button class="imp-tab ${mode === 'book' ? 'active' : ''}" data-kind="book">${icon('file')} 图书 / 资料</button>
+        <button class="imp-tab ${mode === 'work' ? 'active' : ''}" data-kind="work">${icon('briefcase')} 工作文件</button>
+      </div>
+      <div class="import-zone" id="iz">${icon('upload')}<strong>点击选择，或把文件拖到这里</strong><span id="izSub">可多选；支持任意格式</span></div>
       <input type="file" id="fileInput" multiple class="hidden">
-      <p class="hint" style="font-size:12px;color:var(--text2);line-height:1.8;margin:14px 0 0">导入后系统会按文件名与内容关键词<b>智能分类</b>，存放到资料目录的 <b>_导入图书/分类/主题/</b> 下，并自动加入索引与对应书架。同名文件不会被覆盖，原始文件始终保持完整。</p>
+      <p class="hint" id="impHint" style="font-size:12px;color:var(--text2);line-height:1.8;margin:14px 0 0">${mode === 'book' ? bookHint : workHint}</p>
       <div class="import-list" id="impList"></div>`,
     foot: `<button class="btn" data-close>完成</button>` });
   const input = $('#fileInput', m), zone = $('#iz', m), list = $('#impList', m);
+  $('.import-tabs', m).onclick = e => {
+    const b = e.target.closest('[data-kind]'); if (!b) return;
+    mode = b.dataset.kind;
+    $$('.imp-tab', m).forEach(x => x.classList.toggle('active', x === b));
+    $('#impHint', m).innerHTML = mode === 'book' ? bookHint : workHint;
+    $('#izSub', m).textContent = mode === 'book' ? '支持 PDF / EPUB / TXT / MOBI / DOCX 及任意资料文件，可多选'
+      : 'Word / PPT / Excel / PDF / 图片 / 任意附件，可多选';
+  };
   zone.onclick = () => input.click();
   zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag'); };
   zone.ondragleave = () => zone.classList.remove('drag');
@@ -620,12 +674,16 @@ function importModal() {
       row.className = 'import-row'; row.innerHTML = `<span>${esc(f.name)}</span><span>${fmtSize(f.size)}</span><span class="st">上传中…</span>`;
       list.prepend(row); const st = $('.st', row);
       try {
-        const resp = await fetch('/api/import', { method: 'POST', credentials: 'same-origin',
+        const resp = await fetch('/api/' + (mode === 'work' ? 'work/import' : 'import'), {
+          method: 'POST', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/octet-stream', 'x-file-name': encodeURIComponent(f.name) }, body: f });
         if (resp.status === 401) { $('#loginMask').classList.remove('hidden'); throw new Error('需要登录'); }
         const j = await resp.json();
         if (!resp.ok) throw new Error(j.error || '上传失败');
-        st.textContent = '已存入 ' + (j.category || '未分类'); st.className = 'st done';
+        st.textContent = mode === 'work'
+          ? `已归档：${j.project || '未归档'} · ${j.doc_date || '—'}`
+          : '已存入 ' + (j.category || '未分类');
+        st.className = 'st done';
         await refreshMeta(); await loadBooks();
       } catch (e) { st.textContent = e.message; st.className = 'st err'; }
     }
@@ -715,8 +773,239 @@ function settingsModal() {
     } });
 }
 
+/* ============================== 工作台 ==============================
+ * 工作文件与书库完全隔离：独立目录、独立索引、独立项目体系。
+ * 所有归档信息都可由用户覆盖，覆盖后自动锁定，扫描不会再改回去。
+ */
+const WORK_STATUSES = ['待整理', '进行中', '已归档'];
+function workParams() {
+  const p = new URLSearchParams({ page: S.work.page, size: S.work.size, sort: S.work.group === 'date' ? 'date' : 'recent' });
+  if (S.work.project) p.set('project', S.work.project);
+  if (S.work.month) p.set('month', S.work.month);
+  if (S.work.type) p.set('type', S.work.type);
+  if (S.work.status) p.set('status', S.work.status);
+  if (S.q) p.set('q', S.q);
+  return p;
+}
+function renderWorkBar() {
+  const w = S.work, fc = w.facets || {}, ps = fc.projects || [];
+  const months = (fc.months || []).map(x => x.k).filter(Boolean).sort().reverse();
+  const types = (fc.types || []).map(x => x.k);
+  const box = $('#workBar');
+  box.innerHTML = `
+    <div class="wb-line wb-chips">
+      <button class="chip ${!w.project ? 'active' : ''}" data-wproject="">全部文件 <b>${w.stats.total || 0}</b></button>
+      ${ps.slice(0, 14).map(p => `<button class="chip ${w.project === p.k ? 'active' : ''}" data-wproject="${esc(p.k)}">${esc(p.k)} <b>${p.n}</b></button>`).join('')}
+      <button class="chip chip-add" data-wnew title="新建 / 管理项目">＋ 项目</button>
+    </div>
+    <div class="wb-line wb-tools">
+      <select id="wMonth" class="select"><option value="">全部日期</option>${months.map(m => `<option value="${esc(m)}" ${w.month === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+      <select id="wType" class="select"><option value="">全部类型</option>${types.map(t => `<option value="${esc(t)}" ${w.type === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      <select id="wStatus" class="select"><option value="">全部状态</option>${WORK_STATUSES.map(s => `<option value="${esc(s)}" ${w.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <div class="mode-toggle" id="wGroup">
+        <button data-wgroup="project" class="${w.group === 'project' ? 'active' : ''}">按项目</button>
+        <button data-wgroup="date" class="${w.group === 'date' ? 'active' : ''}">按时间</button>
+      </div>
+      <span class="wb-spacer"></span>
+      <button class="btn ghost" id="wImport">${icon('upload')} 导入工作文件</button>
+      <button class="btn ghost" id="wAI" title="用你自己的 AI 账户推断项目与日期">${icon('wand')} AI 识别</button>
+      <button class="btn ghost" id="wRe" title="按离线规则重新识别未归档文件">${icon('sync')} 重跑规则</button>
+      <button class="btn ghost" id="wMirror" title="生成按项目 / 年月 / 类型的硬链接归档视图">${icon('layers')} 归档镜像</button>
+    </div>
+    <div class="wb-note">${icon('info')} 项目 / 日期 / 类型在导入或扫描时自动识别，识别来源会标注在每条记录上；手动修改后该字段会被锁定，后续同步不再覆盖。所有原始文件保持原位置不动。</div>`;
+  hydrate(box);
+  box.onclick = async e => {
+    const p = e.target.closest('[data-wproject]');
+    if (p) { S.work.project = p.dataset.wproject; S.work.page = 1; return loadWork(); }
+    if (e.target.closest('[data-wnew]')) return projectModal(null);
+    const g = e.target.closest('[data-wgroup]');
+    if (g) { S.work.group = g.dataset.wgroup; return loadWork(); }
+    if (e.target.closest('#wImport')) return importModal('work');
+    if (e.target.closest('#wAI')) {
+      toast('正在请求 AI 识别，请稍候…');
+      try { const r = await req('/work/ai-classify', { method: 'POST', body: {} }); toast(`AI 已整理 ${r.changed} 份文件`, 3600); await refreshMeta(); await loadWork(); }
+      catch (err) { toast(err.message, 4200); }
+      return;
+    }
+    if (e.target.closest('#wRe')) {
+      try { const r = await req('/work/reclassify', { method: 'POST', body: {} }); toast(`已重新识别 ${r.changed} 份文件`); await refreshMeta(); await loadWork(); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    if (e.target.closest('#wMirror')) {
+      toast('正在生成归档镜像…');
+      try { const r = await req('/work/organize', { method: 'POST', body: {} }); toast(`归档镜像完成：新链接 ${r.linked}，已存在 ${r.skipped}，失败 ${r.failed}`, 4200); }
+      catch (err) { toast(err.message); }
+    }
+  };
+  const bindSel = (id, key) => { const el = $('#' + id, box); if (el) el.onchange = () => { S.work[key] = el.value; S.work.page = 1; loadWork(); }; };
+  bindSel('wMonth', 'month'); bindSel('wType', 'type'); bindSel('wStatus', 'status');
+}
+async function loadWork() {
+  const area = $('#bookArea');
+  area.className = 'work-area';
+  area.innerHTML = '<div class="loading"><span class="spin"></span>正在整理工作文件…</div>';
+  try {
+    const d = await req('/work/files?' + workParams());
+    S.work.files = d.files; S.work.total = d.total;
+    renderWorkBar(); renderWorkArea();
+  } catch (e) { if (e.message !== '__AUTH__') area.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+const extKind = ext => ['doc', 'docx', 'docm', 'wps', 'rtf', 'odt'].includes(ext) ? 'word'
+  : ['ppt', 'pptx', 'pptm', 'dps', 'odp'].includes(ext) ? 'ppt'
+    : ['xls', 'xlsx', 'xlsm', 'csv', 'et', 'ods'].includes(ext) ? 'excel'
+      : ext === 'pdf' ? 'pdf' : ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'].includes(ext) ? 'img' : 'other';
+function workRow(f) {
+  const ext = (f.ext || '').toLowerCase(), k = extKind(ext);
+  const src = f.project_source || '';
+  return `<article class="work-row" data-wid="${f.id}" title="点击预览：${esc(f.filename)}">
+    <div class="wr-ext e-${k}">${esc((ext || 'file').toUpperCase().slice(0, 4))}</div>
+    <div class="wr-main">
+      <div class="wr-title">${f.pinned ? '<span class="wr-pin">置顶</span>' : ''}${esc(f.title)}</div>
+      <div class="wr-sub">${esc(f.filename)} · ${fmtSize(f.size)} · ${esc(f.path)}</div>
+      ${f.note ? `<div class="wr-note">${esc(f.note)}</div>` : ''}
+    </div>
+    <div class="wr-meta">
+      <span class="wr-chip wr-project" title="项目识别来源：${esc(src)}">${icon('briefcase')} ${esc(f.project)}${src ? `<small>· ${esc(src)}</small>` : ''}</span>
+      <span class="wr-chip wr-date" title="日期识别来源：${esc(f.date_source || '')}">${icon('calendar')} ${esc(f.doc_date || '—')}${f.date_source ? `<small>· ${esc(f.date_source)}</small>` : ''}</span>
+      <span class="wr-chip wr-type">${esc(f.doc_type)}</span>
+      <span class="wr-chip wr-status st-${f.status === '已归档' ? 'done' : f.status === '进行中' ? 'doing' : 'todo'}">${esc(f.status)}</span>
+    </div>
+    <button class="card-menu" data-wmenu="${f.id}" title="更多操作">${icon('more')}</button>
+  </article>`;
+}
+function renderWorkArea() {
+  const area = $('#bookArea');
+  area.className = 'work-area';
+  if (!S.work.files.length) {
+    area.innerHTML = `<div class="empty">${icon('briefcase')}<h3>还没有工作文件</h3>
+      <p>点右上角「导入」，或把 Word / PPT / Excel 拖进导入窗口。<br>系统会自动识别项目与日期，也可以把书库里的文档「加入工作台」。</p>
+      <button class="btn primary" id="wEmptyImport">导入工作文件</button></div>`;
+    hydrate(area); $('#wEmptyImport').onclick = () => importModal('work');
+    $('#pager').innerHTML = '';
+    return;
+  }
+  const groups = new Map();
+  for (const f of S.work.files) {
+    const key = S.work.group === 'date' ? (f.month || '未知月份') : (f.project || '未归档');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+  area.innerHTML = [...groups].map(([name, arr]) => {
+    const dates = arr.map(f => f.doc_date).filter(Boolean).sort();
+    const range = dates.length ? `${dates[0]} ~ ${dates[dates.length - 1]}` : '';
+    return `<section class="work-group">
+      <div class="wg-head">${icon(S.work.group === 'date' ? 'calendar' : 'briefcase')}
+        <h3>${esc(name)}</h3><span class="wg-count">${arr.length} 份</span>
+        ${range ? `<span class="wg-range">${esc(range)}</span>` : ''}
+        ${S.work.group === 'project' ? `<button class="mini-btn" data-weditproj="${esc(name)}" title="编辑这个项目">${icon('edit')}</button>` : ''}
+      </div>
+      <div class="work-rows">${arr.map(workRow).join('')}</div>
+    </section>`;
+  }).join('');
+  hydrate(area);
+  $('#pager').innerHTML = `<span class="pager-info">共 ${S.work.total} 份工作文件${S.work.total > S.work.files.length ? '（当前显示前 ' + S.work.files.length + ' 份，可按项目 / 日期缩小范围）' : ''}</span>`;
+  area.onclick = async e => {
+    const ep = e.target.closest('[data-weditproj]');
+    if (ep) { const p = S.work.projects.find(x => x.name === ep.dataset.weditproj); return projectModal(p || { name: ep.dataset.weditproj, virtual: true }); }
+    const menu = e.target.closest('[data-wmenu]');
+    if (menu) {
+      e.stopPropagation();
+      const g = S.work.files.find(x => x.id === Number(menu.dataset.wmenu));
+      if (!g) return;
+      const r = menu.getBoundingClientRect();
+      return ctxMenu(r.left, r.bottom + 4, [
+        { title: g.title.slice(0, 22) },
+        { label: '打开 / 在线预览', icon: 'file', fn: () => openWorkFile(g) },
+        { label: '编辑归档信息', icon: 'edit', fn: () => workEditModal(g) },
+        { label: g.pinned ? '取消置顶' : '置顶', icon: 'bookmark', fn: async () => { await req('/work/files/' + g.id, { method: 'PATCH', body: { pinned: !g.pinned } }); await loadWork(); } },
+        { sep: true },
+        { label: g.status === '已归档' ? '标记为待整理' : '标记为已归档', icon: 'check', fn: async () => { await req('/work/files/' + g.id, { method: 'PATCH', body: { status: g.status === '已归档' ? '待整理' : '已归档' } }); await refreshMeta(); await loadWork(); } },
+        { label: '下载原文件', icon: 'download', fn: () => location.href = g.book_id ? '/api/download/' + g.book_id : '/api/work/download/' + g.id },
+        { sep: true },
+        { label: '移出工作台（文件保留）', icon: 'trash', danger: true, fn: () => confirmBox('移出工作台',
+          `只会从工作台索引中移除《${esc(g.title)}》。<br><b>磁盘上的原文件不会被删除</b>，重新同步后仍可再次加入。`,
+          async () => { await req('/work/files/' + g.id, { method: 'DELETE' }); toast('已移出工作台，原文件保留'); await refreshMeta(); await loadWork(); }) }
+      ]);
+    }
+    const row = e.target.closest('[data-wid]');
+    if (row) { const g = S.work.files.find(x => x.id === Number(row.dataset.wid)); if (g) openWorkFile(g); }
+  };
+}
+function openWorkFile(f) {
+  // 工作文件没有 book_id 时用负数 id 复用同一套进度 / 书签 / AI 记录，绝不与图书主键冲突
+  const id = f.book_id || -f.id;
+  openReader({
+    id, workId: f.id, title: f.title, filename: f.filename, ext: f.ext,
+    format: (f.ext || 'FILE').toUpperCase(), kind: 'document', size: f.size, path: f.path,
+    rawUrl: f.book_id ? '/api/raw/' + f.book_id : '/api/work/raw/' + f.id,
+    dlUrl: f.book_id ? '/api/download/' + f.book_id : '/api/work/download/' + f.id,
+    textUrl: f.book_id ? '/api/text/' + f.book_id : '/api/work/text/' + f.id
+  });
+}
+function workEditModal(f) {
+  const projects = [...new Set([...S.work.projects.map(p => p.name), ...(S.work.facets.projects || []).map(p => p.k), f.project])].filter(Boolean);
+  const types = ['其他文档', ...new Set([...(S.work.facets.types || []).map(t => t.k), ...[
+    '会议纪要', '方案 / 规划', '需求 / PRD', '设计 / 原型', '汇报 / 总结', '合同 / 法务',
+    '预算 / 财务', '数据 / 报表', '测试 / QA', '调研 / 评审', '计划 / 排期', '通知 / 公文', '简历 / 人事', '讲义 / 培训']])];
+  const m = modal({ title: '编辑归档信息 · ' + f.title.slice(0, 18),
+    body: `<div class="form-row"><label>所属项目</label>
+        <select id="weProject"><option value="未归档">未归档</option>${projects.filter(p => p !== '未归档').map(p => `<option value="${esc(p)}" ${p === f.project ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
+        <input id="weProjectNew" placeholder="或输入新项目名（优先使用）" style="margin-top:8px"></div>
+      <div class="form-row"><label>业务日期</label><input id="weDate" type="date" value="${esc(f.doc_date || '')}">
+        <div class="hint">自动识别来源：${esc(f.date_source || '—')}；修改后将锁定，不再被扫描覆盖</div></div>
+      <div class="form-row"><label>文档类型</label><select id="weType">${types.map(t => `<option value="${esc(t)}" ${t === f.doc_type ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+      <div class="form-row"><label>状态</label><select id="weStatus">${WORK_STATUSES.map(s => `<option value="${esc(s)}" ${s === f.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
+      <div class="form-row"><label>标签（逗号分隔）</label><input id="weTags" value="${esc((f.tags || []).join(', '))}"></div>
+      <div class="form-row"><label>备注</label><textarea id="weNote" rows="2" placeholder="这份文件的背景 / 待办…">${esc(f.note || '')}</textarea></div>
+      <div class="form-row"><label>原文件位置（只读）</label><input value="${esc(f.path)}" disabled>
+        <div class="hint">项目识别来源：${esc(f.project_source || '—')} · ${fmtSize(f.size)} · 不会被移动或删除</div></div>`,
+    foot: `<button class="btn" data-close>取消</button><button class="btn primary" data-save>保存</button>`,
+    onMount(mask) {
+      $('[data-save]', mask).onclick = async () => {
+        const body = {
+          project: ($('#weProjectNew', mask).value.trim() || $('#weProject', mask).value),
+          doc_date: $('#weDate', mask).value, doc_type: $('#weType', mask).value,
+          status: $('#weStatus', mask).value, note: $('#weNote', mask).value,
+          tags: $('#weTags', mask).value.split(/[,，]/).map(s => s.trim()).filter(Boolean)
+        };
+        try {
+          await req('/work/files/' + f.id, { method: 'PATCH', body });
+          closeModal(); toast('归档信息已更新'); await refreshMeta(); await loadWork();
+        } catch (err) { toast(err.message); }
+      };
+    } });
+}
+function projectModal(p) {
+  const colors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6'];
+  const isNew = !p || p.virtual;
+  const m = modal({ title: isNew ? '新建项目' : '编辑项目',
+    body: `<div class="form-row"><label>项目名称</label><input id="wpName" value="${esc(p ? p.name : '')}" placeholder="例如：2026 官网改版"></div>
+      <div class="form-row"><label>颜色</label><div class="preset-row" id="wpColors">${colors.map(c => `<button class="preset" data-c="${c}" style="width:28px;height:28px;border-radius:8px;background:${c};border:2px solid ${c === (p && p.color || colors[0]) ? 'var(--text)' : 'transparent'}"></button>`).join('')}</div></div>
+      <div class="form-row"><label>项目说明（可选）</label><input id="wpDesc" value="${esc(p ? p.description || '' : '')}"></div>
+      <p class="hint">项目名会被加入「项目库」，之后导入的文件名或内容里出现该名称时会自动归入此项目。</p>`,
+    foot: `${!isNew ? '<button class="btn" data-del style="color:var(--rose);margin-right:auto">删除项目</button>' : ''}<button class="btn" data-close>取消</button><button class="btn primary" data-save>保存</button>`,
+    onMount(mask) {
+      let color = p && p.color || colors[0];
+      $('#wpColors', mask).onclick = e => { const b = e.target.closest('[data-c]'); if (!b) return; color = b.dataset.c; $$('#wpColors .preset', mask).forEach(x => x.style.border = '2px solid transparent'); b.style.border = '2px solid var(--text)'; };
+      $('[data-save]', mask).onclick = async () => {
+        const name = $('#wpName', mask).value.trim();
+        if (!name) return toast('请填写项目名称');
+        try {
+          if (isNew) await req('/work/projects', { method: 'POST', body: { name, color, description: $('#wpDesc', mask).value } });
+          else await req('/work/projects/' + p.id, { method: 'PATCH', body: { name, color, description: $('#wpDesc', mask).value } });
+          closeModal(); toast('项目已保存'); await refreshMeta(); await loadWork();
+        } catch (err) { toast(err.message); }
+      };
+      const del = $('[data-del]', mask);
+      if (del) del.onclick = () => confirmBox('删除项目', '项目下的文件不会被删除，只会被改回「未归档」。', async () => {
+        await req('/work/projects/' + p.id, { method: 'DELETE' }); closeModal(); await refreshMeta(); await loadWork();
+      });
+    } });
+}
+
 /* ============================== 阅读器 ============================== */
-const R = { book: null, mode: null, pdf: {}, epub: {}, text: {}, progress: {}, ctxText: '',
+const R = { book: null, mode: null, pdf: {}, epub: {}, text: {}, office: {}, progress: {}, ctxText: '',
   history: [], aiOpen: false, panel: null, lastWrite: 0, saveTimer: null, serverUpdated: 0, zoom: 1 };
 const stage = () => $('#rStage');
 const setLoc = (loc, pct) => {
@@ -736,18 +1025,22 @@ function saveProgress(pct, locator, immediate = false) {
 }
 async function openReader(book, jumpLocator) {
   R.book = book; R.history = []; R.ctxText = ''; R.zoom = 1;
+  R.pdf = {}; R.epub = {}; R.text = {}; R.office = {};
   $('#reader').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   $('#rTitle').textContent = book.title;
-  $('#rContent').scrollTop = 0;
+  $('#rContent').scrollTop = 0; $('#rContent').onscroll = null;
   stage().innerHTML = '<div class="loading"><span class="spin"></span>正在打开…</div>';
   $('#rPanel').classList.add('hidden'); $('#aiPanel').classList.add('hidden');
   const ext = (book.ext || '').toLowerCase();
   if (ext === 'pdf') R.mode = 'pdf';
   else if (ext === 'epub') R.mode = 'epub';
   else if (['mht', 'htm', 'html'].includes(ext)) R.mode = 'html';
-  else if (['txt', 'md', 'csv', 'mobi', 'azw', 'azw3', 'prc'].includes(ext)) R.mode = 'text';
-  else if (['docx', 'pptx'].includes(ext)) R.mode = 'docx';
+  else if (['txt', 'md', 'mobi', 'azw', 'azw3', 'prc'].includes(ext)) R.mode = 'text';
+  // Word / PowerPoint / Excel（含 CSV）用内置 OOXML 引擎还原排版
+  else if (['docx', 'docm', 'pptx', 'pptm', 'xlsx', 'xlsm', 'xltx', 'csv'].includes(ext)) R.mode = 'office';
+  // 旧版二进制 Office 走服务端文本提取，尽量还原正文
+  else if (['doc', 'ppt', 'xls', 'wps', 'et', 'dps', 'rtf'].includes(ext)) R.mode = 'legacy';
   else if (['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg'].includes(ext)) R.mode = 'audio';
   else if (['mp4', 'webm', 'mov', 'm4v'].includes(ext)) R.mode = 'video';
   else if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff'].includes(ext)) R.mode = 'image';
@@ -765,11 +1058,12 @@ function closeReader() {
   clearInterval(R.watchTimer); R.book = null; closeModal();
 }
 async function loadReaderContent(loc) {
-  const b = R.book, url = '/api/raw/' + b.id;
+  const b = R.book, url = b.rawUrl || '/api/raw/' + b.id;
   if (R.mode === 'pdf') return loadPdf(loc);
   if (R.mode === 'epub') return loadEpub(loc);
   if (R.mode === 'text' || R.mode === 'html') return loadText(loc, R.mode === 'html');
-  if (R.mode === 'docx') return loadDocx(loc);
+  if (R.mode === 'office') return loadOffice(loc);
+  if (R.mode === 'legacy') return loadLegacy(loc);
   if (R.mode === 'audio' || R.mode === 'video') return loadMedia(loc);
   if (R.mode === 'image') {
     stage().innerHTML = `<img src="${url}" style="max-width:100%;border-radius:10px;box-shadow:var(--shadow-lg)" alt="${esc(b.title)}">`;
@@ -778,7 +1072,7 @@ async function loadReaderContent(loc) {
   stage().innerHTML = `<div class="r-fallback">${icon('file')}<h3>${esc(b.format)} 暂不支持在线预览</h3>
     <p>该文件为 ${esc(KIND_LABEL[b.kind] || b.kind)} 格式（${fmtSize(b.size)}）。浏览器无法直接渲染，可下载后用本地应用打开。原文件始终保留在 NAS 上。</p>
     <button class="btn primary" id="fbDl">下载原文件</button></div>`;
-  hydrate(stage()); $('#fbDl').onclick = () => location.href = '/api/download/' + b.id;
+  hydrate(stage()); $('#fbDl').onclick = () => location.href = b.dlUrl || '/api/download/' + b.id;
   setLoc('—', 0); saveProgress(0, { type: 'fallback' });
 }
 
@@ -787,7 +1081,7 @@ async function loadPdf(loc) {
   if (!window.pdfjsLib) return fallback('PDF 组件未加载');
   pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.js';
   try {
-    const data = await (await fetch('/api/raw/' + R.book.id)).arrayBuffer();
+    const data = await (await fetch((R.book.rawUrl || '/api/raw/' + R.book.id))).arrayBuffer();
     const doc = await pdfjsLib.getDocument({ data, disableRange: true, disableStream: true,
       cMapUrl: '/vendor/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/standard_fonts/' }).promise;
     R.pdf = { doc, pages: doc.numPages, page: Math.min(Math.max(1, Number(loc.page || 1)), doc.numPages), zoom: 1 };
@@ -824,7 +1118,7 @@ function normPath(baseHref, rel) {
 async function loadEpub(loc) {
   if (!window.JSZip) return fallback('EPUB 组件未加载');
   try {
-    const buf = await (await fetch('/api/raw/' + R.book.id)).arrayBuffer();
+    const buf = await (await fetch((R.book.rawUrl || '/api/raw/' + R.book.id))).arrayBuffer();
     const zip = await JSZip.loadAsync(buf);
     const cfile = zip.file('META-INF/container.xml');
     if (!cfile) return fallback('不是有效的 EPUB 文件');
@@ -885,7 +1179,7 @@ function splitText(t, size = 2200) {
 }
 async function loadText(loc, asHtml) {
   try {
-    const t = await (await fetch('/api/text/' + R.book.id)).text();
+    const t = await (await fetch((R.book.textUrl || '/api/text/' + R.book.id))).text();
     if (!t.trim()) return fallback('文件内容为空或无法提取文本');
     if (asHtml) {
       stage().innerHTML = `<div class="text-page html">${t}</div>`;
@@ -909,7 +1203,7 @@ function textGo(i) { const n = R.text.chunks.length; R.text.idx = Math.min(Math.
 async function loadDocx(loc) {
   if (!window.JSZip) return fallback('文档组件未加载');
   try {
-    const buf = await (await fetch('/api/raw/' + R.book.id)).arrayBuffer();
+    const buf = await (await fetch((R.book.rawUrl || '/api/raw/' + R.book.id))).arrayBuffer();
     const zip = await JSZip.loadAsync(buf);
     const f = zip.file('word/document.xml') || zip.file('ppt/slides/slide1.xml');
     if (!f) return fallback('无法解析该文档');
@@ -922,9 +1216,80 @@ async function loadDocx(loc) {
     renderText();
   } catch (e) { fallback('文档解析失败：' + e.message); }
 }
+/* --- Office：Word / PowerPoint / Excel（内置 OOXML 引擎，无外部依赖） --- */
+async function loadOffice(loc) {
+  if (!window.Office) return fallback('Office 预览组件未加载');
+  stage().innerHTML = '<div class="loading"><span class="spin"></span>正在解析 Office 文档…</div>';
+  try {
+    const buf = await (await fetch(R.book.rawUrl || '/api/raw/' + R.book.id)).arrayBuffer();
+    const d = await Office.parse(buf, (R.book.ext || '').toLowerCase());
+    R.office = d;
+    R.ctxText = d.text || '';
+    if (d.type === 'csv') {
+      const rows = d.text.split(/\r?\n/).slice(0, 300).map(l => l.split(/[,\t]/));
+      d.pages = [{ name: 'CSV 数据', rows, maxCols: Math.min(60, Math.max(1, ...rows.map(r => r.length))), truncated: rows.length >= 300 }];
+      d.kind = 'sheet';
+    } else if (d.type === 'xlsx') { d.pages = d.sheets; d.kind = 'sheet'; }
+    else if (d.type === 'pptx') { d.pages = d.slides; d.kind = 'slide'; }
+    else d.kind = 'doc';
+    if (d.kind === 'doc') {
+      stage().innerHTML = Office.renderDocx(d);
+      const box = $('#rContent');
+      box.onscroll = () => {
+        const max = box.scrollHeight - box.clientHeight;
+        const pct = max > 0 ? Math.min(100, box.scrollTop / max * 100) : 100;
+        setLoc('Word 文档', pct);
+        saveProgress(pct, { type: 'office', sub: 'docx', scroll: box.scrollTop });
+      };
+      if (loc && typeof loc.scroll === 'number') setTimeout(() => { box.scrollTop = loc.scroll; }, 40);
+      setLoc('Word 文档', 0); saveProgress(0, { type: 'office', sub: 'docx', scroll: 0 });
+    } else {
+      d.idx = Math.min(Math.max(0, Number(loc.idx || 0)), Math.max(0, d.pages.length - 1));
+      renderOfficePage(d.idx);
+    }
+    updateCtxHint();
+  } catch (e) {
+    // OOXML 解析失败时退回服务端纯文本，至少保证「能读到内容」
+    try { await loadLegacy(loc); } catch (e2) { fallback('Office 文档解析失败：' + e.message); }
+  }
+}
+function renderOfficePage(i) {
+  const d = R.office;
+  if (!d || !d.pages || !d.pages.length) return;
+  d.idx = Math.min(Math.max(0, i), d.pages.length - 1);
+  const p = d.pages[d.idx];
+  if (d.kind === 'slide') {
+    stage().innerHTML = Office.renderSlide(p, d.idx, d.pages.length);
+    R.ctxText = (p.lines || []).join(' ').slice(0, 6000);
+  } else {
+    stage().innerHTML = `<div class="sheet-tabs">${d.pages.map((s, n) =>
+      `<button class="sheet-tab ${n === d.idx ? 'active' : ''}" data-sheet="${n}">${esc(s.name)}</button>`).join('')}</div>` + Office.renderSheet(p);
+    $$('.sheet-tab', stage()).forEach(b => b.onclick = () => renderOfficePage(Number(b.dataset.sheet)));
+    R.ctxText = (p.rows || []).slice(0, 30).map(r => r.join(' ')).join('\n').slice(0, 6000);
+  }
+  const pct = (d.idx / d.pages.length) * 100;
+  setLoc(`${d.idx + 1} / ${d.pages.length} ${d.kind === 'slide' ? '页' : '表'}`, pct);
+  saveProgress(pct, { type: 'office', sub: d.type, idx: d.idx });
+  updateCtxHint(); highlightToc();
+}
+// 旧版 .doc / .ppt / .xls / WPS：服务端尽力提取正文，保留分页阅读与进度
+async function loadLegacy(loc) {
+  try {
+    const resp = await fetch(R.book.textUrl || '/api/text/' + R.book.id);
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => ({}));
+      return fallback(j.error || '旧版 Office 文件无法提取文字，建议另存为 .docx / .pptx / .xlsx 后重新导入');
+    }
+    const t = await resp.text();
+    if (!t.trim()) return fallback('旧版 Office 文件未能提取到文字，建议另存为新格式后重新导入');
+    const chunks = splitText(t);
+    R.text = { chunks, idx: Math.min(Math.max(0, Number(loc.idx || 0)), chunks.length - 1) };
+    renderText();
+  } catch (e) { fallback('读取失败：' + e.message); }
+}
 function loadMedia(loc) {
   const tag = R.mode === 'audio' ? 'audio' : 'video';
-  stage().innerHTML = `<${tag} class="r-media" id="rMedia" controls preload="metadata" src="/api/raw/${R.book.id}" ${tag === 'video' ? 'playsinline style="max-height:72vh"' : ''}></${tag}>
+  stage().innerHTML = `<${tag} class="r-media" id="rMedia" controls preload="metadata" src="${R.book.rawUrl || '/api/raw/' + R.book.id}" ${tag === 'video' ? 'playsinline style="max-height:72vh"' : ''}></${tag}>
     <p style="color:var(--text2);font-size:12px;margin-top:12px">${R.mode === 'video' ? '浏览器可播放 MP4/WebM/MOV；RMVB、RM、FLV 等格式请下载后用本地播放器打开。' : '播放进度会自动保存，换设备继续收听。'}</p>`;
   const el = $('#rMedia');
   el.addEventListener('loadedmetadata', () => { if (loc.time && el.duration) el.currentTime = loc.time; });
@@ -935,7 +1300,7 @@ function loadMedia(loc) {
 const fmtTime = s => { s = Math.floor(s || 0); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function fallback(msg) {
   stage().innerHTML = `<div class="r-fallback">${icon('info')}<h3>无法在线阅读</h3><p>${esc(msg)}</p><button class="btn primary" id="fbDl">下载原文件</button></div>`;
-  hydrate(stage()); $('#fbDl').onclick = () => location.href = '/api/download/' + R.book.id;
+  hydrate(stage()); $('#fbDl').onclick = () => location.href = R.book.dlUrl || '/api/download/' + R.book.id;
   setLoc('—', 0);
 }
 
@@ -964,17 +1329,31 @@ function gotoLocator(loc) {
   if (!loc) return;
   if (loc.type === 'pdf' && loc.page) pdfGo(loc.page);
   else if (loc.type === 'epub') epubGo(loc.idx || 0);
+  else if (loc.type === 'office') {
+    if (loc.sub === 'docx') {
+      const box = $('#rContent');
+      if (box && typeof loc.scroll === 'number') setTimeout(() => { box.scrollTop = loc.scroll; }, 40);
+    } else renderOfficePage(loc.idx || 0);
+  }
   else if (loc.type === 'text') textGo(loc.idx || 0);
   else if (loc.type === 'media' && $('#rMedia') && loc.time) $('#rMedia').currentTime = loc.time;
 }
 function readerPrev() {
   if (R.mode === 'pdf') pdfGo(R.pdf.page - 1);
   else if (R.mode === 'epub') epubGo(R.epub.idx - 1);
+  else if (R.mode === 'office' && R.office) {
+    if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = Math.max(0, b.scrollTop - b.clientHeight * .85); }
+    else renderOfficePage((R.office.idx || 0) - 1);
+  }
   else if (R.text.chunks) textGo(R.text.idx - 1);
 }
 function readerNext() {
   if (R.mode === 'pdf') pdfGo(R.pdf.page + 1);
   else if (R.mode === 'epub') epubGo(R.epub.idx + 1);
+  else if (R.mode === 'office' && R.office) {
+    if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = b.scrollTop + b.clientHeight * .85; }
+    else renderOfficePage((R.office.idx || 0) + 1);
+  }
   else if (R.text.chunks) textGo(R.text.idx + 1);
 }
 function showPanel(kind) {
@@ -986,10 +1365,24 @@ function showPanel(kind) {
     let items = [];
     if (R.mode === 'pdf') items = Array.from({ length: R.pdf.pages || 0 }, (_, i) => ({ n: i + 1, label: `第 ${i + 1} 页`, active: R.pdf.page === i + 1 }));
     else if (R.mode === 'epub') items = R.epub.spine.map((h, i) => ({ n: i, label: (R.epub.tocTitles[i] || `第 ${i + 1} 节`), active: R.epub.idx === i }));
+    else if (R.mode === 'office' && R.office) {
+      items = R.office.kind === 'doc'
+        ? (R.office.headings || []).map(h => ({ n: h.i, label: h.label, active: false }))
+        : (R.office.pages || []).map((p, i) => ({ n: i, label: p.title || p.name || `第 ${i + 1} 页`, active: R.office.idx === i }));
+    }
     else if (R.text.chunks) items = R.text.chunks.map((_, i) => ({ n: i, label: `第 ${i + 1} 页`, active: R.text.idx === i }));
     body.innerHTML = items.map(it => `<button class="toc-item ${it.active ? 'active' : ''}" data-n="${it.n}">${esc(it.label)}</button>`).join('') || '<div style="color:var(--text3);font-size:12px;padding:12px">该格式没有目录</div>';
     body.onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = Number(b.dataset.n);
-      if (R.mode === 'pdf') pdfGo(n); else if (R.mode === 'epub') epubGo(n); else textGo(n); showPanel('toc'); };
+      if (R.mode === 'pdf') pdfGo(n);
+      else if (R.mode === 'epub') epubGo(n);
+      else if (R.mode === 'office' && R.office) {
+        if (R.office.kind === 'doc') {
+          const h = $$('.office-doc h1,.office-doc h2,.office-doc h3', stage())[n];
+          if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else renderOfficePage(n);
+      }
+      else textGo(n);
+      showPanel('toc'); };
   } else {
     req('/bookmarks?bookId=' + R.book.id).then(d => {
       body.innerHTML = d.bookmarks.map(m => `<div class="bm-item" data-id="${m.id}" data-loc='${esc(JSON.stringify(m.locator))}'>
@@ -1006,7 +1399,10 @@ function showPanel(kind) {
 }
 function highlightToc() { if (R.panel === 'toc') $$('.toc-item', $('#rpBody')).forEach(el => el.classList.remove('active')); }
 function addBookmark() {
-  const labelMap = { pdf: `第 ${R.pdf.page || 1} 页`, epub: `第 ${(R.epub.idx || 0) + 1} 章`, text: `第 ${(R.text.idx || 0) + 1} 页` };
+  const officeLabel = R.office && R.office.kind === 'slide' ? `第 ${(R.office.idx || 0) + 1} 页幻灯片`
+    : R.office && R.office.kind === 'sheet' ? `第 ${(R.office.idx || 0) + 1} 张工作表` : 'Word 文档';
+  const labelMap = { pdf: `第 ${R.pdf.page || 1} 页`, epub: `第 ${(R.epub.idx || 0) + 1} 章`,
+    text: `第 ${(R.text.idx || 0) + 1} 页`, office: officeLabel };
   const m = modal({ title: '添加书签',
     body: `<div class="form-row"><label>书签名称</label><input id="bmLabel" value="${esc(labelMap[R.mode] || '书签')}"></div>
       <div class="form-row"><label>备注（可选）</label><textarea id="bmNote" placeholder="记录一下想法…"></textarea></div>`,
@@ -1020,16 +1416,24 @@ $('#rBack').onclick = closeReader;
 $('#rToc').onclick = () => R.panel === 'toc' ? ($('#rPanel').classList.add('hidden'), R.panel = null) : showPanel('toc');
 $('#rMark').onclick = addBookmark;
 $('#rAI').onclick = () => toggleAI(!R.aiOpen);
-$('#rDownload').onclick = () => { if (R.book) location.href = '/api/download/' + R.book.id; };
+$('#rDownload').onclick = () => { if (R.book) location.href = R.book.dlUrl || '/api/download/' + R.book.id; };
 $('#rpClose').onclick = () => { $('#rPanel').classList.add('hidden'); R.panel = null; };
 $('#rPrev').onclick = readerPrev; $('#rNext').onclick = readerNext;
-const applyTextZoom = () => { const t = $('.text-page', stage()); if (t) t.style.fontSize = (14 + R.zoom * 2) + 'px'; };
+const applyTextZoom = () => {
+  const t = $('.text-page', stage()); if (t) t.style.fontSize = (14 + R.zoom * 2) + 'px';
+  const o = $('.office-doc', stage()); if (o) o.style.fontSize = (14 + R.zoom * 2) + 'px';
+  const s = $('.office-slide', stage()); if (s) s.style.fontSize = (14 + R.zoom * 2) + 'px';
+};
 $('#rZoomIn').onclick = () => { R.zoom = Math.min(2, R.zoom + .15); if (R.mode === 'pdf') { R.pdf.zoom = R.zoom; renderPdf(); } else applyTextZoom(); };
 $('#rZoomOut').onclick = () => { R.zoom = Math.max(.6, R.zoom - .15); if (R.mode === 'pdf') { R.pdf.zoom = R.zoom; renderPdf(); } };
 $('#rProgress').oninput = e => {
   const pct = Number(e.target.value) / 10;
   if (R.mode === 'pdf') pdfGo(Math.max(1, Math.round(R.pdf.pages * pct / 100)));
   else if (R.mode === 'epub') epubGo(Math.round(R.epub.spine.length * pct / 100));
+  else if (R.mode === 'office' && R.office) {
+    if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = (b.scrollHeight - b.clientHeight) * pct / 100; }
+    else renderOfficePage(Math.round(R.office.pages.length * pct / 100));
+  }
   else if (R.text.chunks) textGo(Math.round(R.text.chunks.length * pct / 100));
 };
 $('#rBack').innerHTML = icon('back'); $('#rToc').innerHTML = icon('toc'); $('#rMark').innerHTML = icon('bookmark');

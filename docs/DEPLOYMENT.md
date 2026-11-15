@@ -14,7 +14,9 @@
 
 同一个 <PUBLIC_HOST> 下还会自动生成
   ├─ _导入图书/                 网页导入的书
-  └─ _图书馆分类/               硬链接镜像（可选）
+  ├─ _图书馆分类/               书库硬链接镜像（可选）
+  ├─ _工作文件/                 工作台导入的 Word/PPT/Excel 等：<项目>/<年>/<年-月>/
+  └─ _工作台分类/               工作台硬链接镜像（可选）：<项目>/<年-月>/<类型>/
 
 应用数据（独立卷）
   └─ <DATA_HOST>/library.db + covers/
@@ -104,8 +106,8 @@ curl -s http://<HOST_IP>:8090/api/state | head -c 400
 ## 3. 普通 Linux 主机 / 家庭服务器
 
 ```bash
-git clone https://github.com/<your-name>/lan-library.git
-cd lan-library
+git clone https://github.com/<your-name>/lantern-desk.git
+cd lantern-desk
 cp .env.example .env
 ```
 
@@ -199,7 +201,18 @@ docker compose down
 | 封面迟迟不出现 | PDF 首页由浏览器首次打开时渲染并回传；超大文件（> 260 MB）会跳过。查看 `/api/state` 的 `covers` 计数，或手动 `POST /api/cover/:id` |
 | RMVB / FLV / MKV 无法播放 | 浏览器不支持这些编码；点击下载，用本地播放器打开 |
 | 容器反复重启 | `docker compose logs` 看报错；常见为 `PUBLIC_HOST` 路径不存在、目录无写权限、Node 镜像未拉取成功 |
-| AI 提示无法连接 | 只有 AI 问答需要外网；检查 NAS 的 DNS / 出网策略与 `baseUrl`，用 `POST /api/ai/test` 验证 |
+| AI 提示无法连接 | 只有 AI 问答与「AI 识别」需要外网；检查 NAS 的 DNS / 出网策略与 `baseUrl`，用 `POST /api/ai/test` 验证 |
+| 工作台里看不到任何文件 | 工作目录 `${PUBLIC_ROOT}/${WORK_DIR}`（默认 `_工作文件`）与书库**平级且独立**；只有通过「导入工作文件」、把文件直接放进该目录，或在书库卡片菜单「加入工作台」才会出现 |
+| 项目 / 日期识别不准 | 在工作台文件菜单点「编辑归档信息」手动修正，改过的字段会锁定不再被扫描覆盖；也可点「AI 识别」批量推断。规则集中在 `server/work.js` |
+| Word / PPT / Excel 打开是纯文本或空白 | 新版 OOXML 由浏览器解析；解析失败会自动退回服务端文本提取。旧版 `.doc/.ppt/.xls` 只能尽力抽取文字，建议另存为 `.docx/.pptx/.xlsx` 后重新导入；超过 80 MB 的文件会跳过文档属性读取 |
+| 工作台归档镜像 `failed` 增多 | 与书库镜像同理：工作目录与 `_工作台分类` 必须在同一挂载点，否则硬链接报 `EXDEV` |
+
+### 工作台 / Office 预览的部署注意点
+
+- 不需要额外安装任何软件：OOXML 解析在浏览器里完成，服务端只提供原始文件流（`GET /api/work/raw/:id`，支持 Range）。
+- `WORK_DIR` / `WORK_MIRROR_DIR` 可在 `.env` 里改目录名；`WORK_ROOT` 由 `PUBLIC_ROOT` 推导，不要把它指向 `BOOKS_ROOT` 内部，否则工作文档会被书库一起索引。
+- 首次启动会在 `PUBLIC_ROOT` 下创建工作目录；升级时 `work_files` / `work_projects` 表会自动建表与字段迁移，不会重置已有的书库数据。
+- 备份依旧只需 `DATA_HOST`：进度、书签、项目与归档信息都在同一个 `library.db` 里。
 
 ### 性能参考
 

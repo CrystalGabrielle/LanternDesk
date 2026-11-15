@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>灯下 · Lantern Desk — Figma 展示板预览</title>
+<style>
+  :root{--bg:#f5f6fa;--surface:#fff;--border:#e3e6f0;--text:#1c2030;--text2:#6a7185;--text3:#9aa1b3;--primary:#5b5bd6;--soft:#ececfc;--amber:#d97706}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 80px}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#5b5bd6,#9b6df0);flex:none}
+  h1{margin:0;font-size:24px}
+  .sub{color:var(--text2);font-size:13px;margin:0 0 4px}
+  .badge{margin-left:auto;font-size:11px;font-weight:700;color:var(--amber);background:#fff4e5;padding:6px 12px;border-radius:20px}
+  .intro{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:22px 0 28px;color:var(--text2);font-size:13px}
+  .intro b{color:var(--text)}
+  .intro code{background:var(--soft);color:var(--primary);padding:1px 6px;border-radius:5px;font-size:12px}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+  .frame{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .frame.full{grid-column:1 / -1}
+  .frame figcaption{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600}
+  .frame figcaption span{font-size:11px;font-weight:700;color:var(--primary);background:var(--soft);padding:2px 8px;border-radius:6px}
+  .frame img{display:block;width:100%;height:auto}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 26px}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12.5px;text-decoration:none}
+  .btn:hover{border-color:var(--primary);color:var(--primary)}
+  .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+  footer{margin-top:34px;color:var(--text3);font-size:12px;text-align:center}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}.badge{margin-left:0}.wrap{padding:20px 14px 60px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark"></div>
+    <div><h1>灯下 · Lantern Desk</h1><p class="sub">Figma 展示板 / 产品说明图集 · 可编辑矢量源文件 · v0.3.0</p></div>
+    <span class="badge">100% AI-GENERATED · MIT</span>
+  </header>
+
+  <div class="intro">
+    这是一套可以直接拖进 <b>Figma</b> 的展示图：所有文字与形状都是内联属性的矢量图层，导入后仍可逐层编辑。
+    在 Figma 中新建设计文件 → 把 <code>lantern-desk-showcase.svg</code> 或下面任意单张 <code>frames/*.svg</code> 拖进画布即可。
+    详见 <a href="README.md">docs/figma/README.md</a>。
+  </div>
+
+  <div class="actions">
+    <a class="btn primary" href="lantern-desk-showcase.svg">总览 SVG（一次导入 7 个画板）</a>
+    <a class="btn" href="lantern-desk-showcase.png">总览 PNG</a>
+    <a class="btn" href="https://www.figma.com/" target="_blank" rel="noopener">打开 Figma ↗</a>
+    <a class="btn" href="../images/architecture.png">原有架构示意图</a>
+  </div>
+
+  <div class="grid">
+    <figure class="frame"><figcaption><span>01</span> 品牌与定位 · Brand</figcaption><img src="frames/01-brand.svg" alt="品牌与定位画板"></figure>
+    <figure class="frame"><figcaption><span>02</span> 系统架构 · Architecture</figcaption><img src="frames/02-architecture.svg" alt="系统架构画板"></figure>
+    <figure class="frame"><figcaption><span>03</span> 书库界面 · Library UI</figcaption><img src="frames/03-library-ui.svg" alt="书库界面线框"></figure>
+    <figure class="frame"><figcaption><span>04</span> 工作台界面 · Workdesk UI</figcaption><img src="frames/04-workdesk-ui.svg" alt="工作台界面线框"></figure>
+    <figure class="frame"><figcaption><span>05</span> Office 阅读器 · Reader</figcaption><img src="frames/05-reader.svg" alt="Word PPT Excel 阅读器画板"></figure>
+    <figure class="frame"><figcaption><span>06</span> 设计系统 · Design tokens</figcaption><img src="frames/06-design-tokens.svg" alt="色彩字体组件画板"></figure>
+    <figure class="frame full"><figcaption><span>07</span> 内网安全边界 · Security</figcaption><img src="frames/07-security.svg" alt="内网安全边界画板"></figure>
+  </div>
+
+  <footer>Lantern Desk · MIT License · 本项目完全由 AI 生成 · 示意图为矢量源文件，可直接导入 Figma 编辑</footer>
+</div>
+</body>
+</html>

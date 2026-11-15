@@ -1,5 +1,5 @@
 'use strict';
-// LAN Library —— 仅内网访问的数字图书馆服务（零第三方运行时依赖）
+// 灯下 · Lantern Desk —— 仅内网访问的私人书库与工作台服务（零第三方运行时依赖）
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -8,6 +8,7 @@ const { pipeline } = require('node:stream/promises');
 const C = require('./core');
 const TREE = require('./tree');
 const COVERS = require('./covers');
+const W = require('./work');
 
 const { db, now, getSetting, setSetting, BOOKS_ROOT, DATA_DIR, PUBLIC_ROOT,
   IMPORT_DIR, MIRROR_DIR, READABLE, guessCategory, guessSubcategory,
@@ -16,6 +17,13 @@ const PORT = Number(process.env.PORT || 8090);
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
 const BOOKS_ABS = path.resolve(BOOKS_ROOT);
 const SCAN_INTERVAL = Math.max(1, Number(process.env.SCAN_INTERVAL_MIN || 10));
+// 书库与工作台共用一次扫描：先建图书索引，再识别工作文件的项目 / 日期 / 类型
+function runSync() {
+  const s = sync();
+  const w = W.syncWork();
+  return { ...s, work: w };
+}
+W.ensureWorkDir();
 
 /* ---------------------------- 基础工具 ---------------------------- */
 const MIME = {
@@ -28,7 +36,12 @@ const MIME = {
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.m4a': 'audio/mp4',
   '.ogg': 'audio/ogg', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
   '.m4v': 'video/mp4', '.zip': 'application/zip', '.rar': 'application/vnd.rar',
-  '.xml': 'application/xml', '.opf': 'application/oebps-package+xml'
+  '.xml': 'application/xml', '.opf': 'application/oebps-package+xml',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.doc': 'application/msword', '.ppt': 'application/vnd.ms-powerpoint',
+  '.xls': 'application/vnd.ms-excel', '.rtf': 'application/rtf'
 };
 const mimeOf = p => MIME[path.extname(p).toLowerCase()] || 'application/octet-stream';
 
@@ -129,8 +142,27 @@ function palmDocUncompress(buf) {
   }
   return Buffer.from(out);
 }
+// 旧版二进制 Office（OLE 复合文档）无法无损还原排版，尽力抽取 UTF-16 文本供阅读/检索
+function legacyOfficeText(buf) {
+  const out = [];
+  let cur = '';
+  for (let i = 0; i + 1 < buf.length; i += 2) {
+    const c = buf.readUInt16LE(i);
+    const printable = (c >= 0x20 && c <= 0x7e) || (c >= 0x4e00 && c <= 0x9fff) ||
+      (c >= 0x3000 && c <= 0x303f) || (c >= 0xff00 && c <= 0xffef) || c === 0x0a || c === 0x0d;
+    if (printable) cur += String.fromCharCode(c === 0x0a || c === 0x0d ? 0x20 : c);
+    else { if (cur.trim().length >= 4) out.push(cur.trim()); cur = ''; }
+  }
+  if (cur.trim().length >= 4) out.push(cur.trim());
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').slice(0, 300000);
+}
 function extractText(abs, ext) {
   const buf = fs.readFileSync(abs);
+  if (ext === 'rtf') {
+    return buf.toString('utf8').replace(/\\'([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\{\\\*?[^}]*\}|\\par[d]?|\\[a-z]+-?\d* ?|[{}]/gi, ' ').replace(/[ \t]{2,}/g, ' ');
+  }
+  if (['doc', 'ppt', 'xls', 'wps', 'et', 'dps'].includes(ext)) return legacyOfficeText(buf);
   if (['txt', 'md', 'csv', 'mht', 'htm', 'html'].includes(ext)) {
     const utf8 = buf.toString('utf8');
     // 老资料里常见 GBK / GB18030 编码，UTF-8 解码出现大量替换符时自动回退
@@ -178,7 +210,7 @@ add('GET', '/api/state', ({ res, req }) => {
     authenticated: authed(req), ai: aiPublic(),
     mirrorBuiltAt: Number(getSetting('mirror_built_at', '0')),
     mirrorCount: Number(getSetting('mirror_count', '0')),
-    covers: COVERS.coverCount() });
+    covers: COVERS.coverCount(), work: W.stats() });
 });
 add('GET', '/api/facets', ({ res }) => {
   const base = 'hidden=0 AND missing=0 AND is_asset=0';
@@ -396,7 +428,7 @@ add('DELETE', '/api/bookmarks/([^/]+)', ({ res, parts }) => {
 });
 
 /* --- 扫描 / 整理 --- */
-add('POST', '/api/scan', ({ res }) => ok(res, sync()));
+add('POST', '/api/scan', ({ res }) => ok(res, runSync()));
 add('GET', '/api/scan/status', ({ res }) => ok(res, { ...lastScan(), intervalMin: SCAN_INTERVAL,
   history: db.prepare('SELECT * FROM scan_log ORDER BY id DESC LIMIT 10').all() }));
 add('POST', '/api/organize/materialize', ({ res }) => {
@@ -426,7 +458,7 @@ add('POST', '/api/import', async ({ req, res }) => {
   try {
     await pipeline(req, fs.createWriteStream(tmp));
     fs.renameSync(tmp, dest);
-    const stat = sync();
+    const stat = runSync();
     const rel = path.relative(BOOKS_ROOT, dest).split(path.sep).join('/');
     const row = db.prepare('SELECT id,title,category,subcategory FROM books WHERE path=?').get(rel);
     ok(res, { ok: true, filename: path.basename(dest), category: cat, subcategory: sub,
@@ -458,6 +490,92 @@ add('GET', '/api/text/([^/]+)', ({ res, parts }) => {
   try {
     const t = extractText(r.abs, r.b.ext);
     if (t === null) return fail(res, 415, '该格式不提供纯文本提取');
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(t.slice(0, 6 * 1024 * 1024));
+  } catch (e) { fail(res, 500, e.message); }
+});
+
+/* ==================== 工作台：工作文件智能整理 ==================== */
+function resolveWork(res, id) {
+  const r = db.prepare('SELECT * FROM work_files WHERE id=?').get(Number(id));
+  if (!r) { fail(res, 404, '工作文件不存在'); return null; }
+  const root = path.resolve(r.root === 'books' ? BOOKS_ROOT : W.WORK_ROOT);
+  const abs = path.resolve(root, r.path);
+  if (!abs.startsWith(root + path.sep) || !fs.existsSync(abs)) { fail(res, 404, '原文件已不可访问'); return null; }
+  return { r, abs };
+}
+add('GET', '/api/work/files', ({ res, q }) => ok(res, W.list(q)));
+add('GET', '/api/work/facets', ({ res }) => ok(res, W.facets()));
+add('GET', '/api/work/projects', ({ res }) => ok(res, { projects: W.projects() }));
+add('POST', '/api/work/projects', async ({ res, req }) => {
+  try { ok(res, W.createProject(await readJSON(req))); } catch (e) { fail(res, 400, e.message); }
+});
+add('PATCH', '/api/work/projects/([^/]+)', async ({ res, req, parts }) => {
+  try { ok(res, W.updateProject(parts[0], await readJSON(req))); } catch (e) { fail(res, 400, e.message); }
+});
+add('DELETE', '/api/work/projects/([^/]+)', ({ res, parts }) => ok(res, W.deleteProject(parts[0])));
+add('GET', '/api/work/files/([^/]+)', ({ res, parts }) => {
+  const r = db.prepare('SELECT * FROM work_files WHERE id=?').get(Number(parts[0]));
+  if (!r) return fail(res, 404, '工作文件不存在');
+  ok(res, W.pack(r));
+});
+add('PATCH', '/api/work/files/([^/]+)', async ({ res, req, parts }) => {
+  try { ok(res, W.update(parts[0], await readJSON(req))); } catch (e) { fail(res, 400, e.message); }
+});
+add('DELETE', '/api/work/files/([^/]+)', ({ res, parts }) => ok(res, W.remove(parts[0])));
+add('POST', '/api/work/files/([^/]+)/restore', ({ res, parts }) => ok(res, W.remove(parts[0], true)));
+add('POST', '/api/work/adopt', async ({ res, req }) => {
+  const b = await readJSON(req);
+  try { ok(res, { file: W.adopt(b.bookId) }); } catch (e) { fail(res, 400, e.message); }
+});
+add('POST', '/api/work/reclassify', async ({ res, req }) => {
+  const b = await readJSON(req).catch(() => ({}));
+  ok(res, W.reclassify(b.ids));
+});
+add('POST', '/api/work/ai-classify', async ({ res, req }) => {
+  const b = await readJSON(req).catch(() => ({}));
+  try { ok(res, await W.aiClassify(b.ids)); } catch (e) { fail(res, 400, e.message); }
+});
+add('POST', '/api/work/organize', ({ res }) => {
+  try { ok(res, W.materializeMirror()); } catch (e) { fail(res, 500, e.message); }
+});
+// 从浏览器导入工作文件：先落到同一挂载点的临时文件，识别项目 / 日期后再归档
+add('POST', '/api/work/import', async ({ req, res }) => {
+  const rawName = req.headers['x-file-name'] || '';
+  let filename;
+  try { filename = decodeURIComponent(rawName); } catch { filename = rawName; }
+  filename = path.basename(filename).replace(/[\\/:*?"<>|\x00-\x1f]/g, '_');
+  if (!filename) return fail(res, 400, '缺少文件名');
+  const dir = path.join(W.WORK_ROOT, '_暂存');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { return fail(res, 500, '无法创建工作目录：' + e.message); }
+  const tmp = path.join(dir, '.upload_' + crypto.randomBytes(8).toString('hex') + '.part');
+  try {
+    await pipeline(req, fs.createWriteStream(tmp));
+    const out = W.stageAndClassify(tmp, filename);
+    const scan = runSync();
+    const row = db.prepare("SELECT * FROM work_files WHERE root='work' AND path=?").get(out.rel);
+    ok(res, { ok: true, filename: path.basename(out.dest), project: out.c.project,
+      project_source: out.c.project_source, doc_date: out.c.doc_date, date_source: out.c.date_source,
+      doc_type: out.c.doc_type, file: row ? W.pack(row) : null, scan });
+  } catch (e) {
+    try { fs.unlinkSync(tmp); } catch {}
+    fail(res, 500, '导入失败：' + e.message);
+  }
+});
+add('GET', '/api/work/raw/([^/]+)', ({ req, res, parts }) => {
+  const r = resolveWork(res, parts[0]); if (!r) return;
+  serveFile(req, res, r.abs);
+});
+add('GET', '/api/work/download/([^/]+)', ({ req, res, parts }) => {
+  const r = resolveWork(res, parts[0]); if (!r) return;
+  serveFile(req, res, r.abs, { download: true, name: r.r.filename });
+});
+add('GET', '/api/work/text/([^/]+)', ({ res, parts }) => {
+  const r = resolveWork(res, parts[0]); if (!r) return;
+  try {
+    let t = extractText(r.abs, r.r.ext);
+    if (t === null) t = W.officeText(r.abs, r.r.ext);
+    if (!t) return fail(res, 415, '该格式无法提取文本，请下载后用本地应用打开');
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(t.slice(0, 6 * 1024 * 1024));
   } catch (e) { fail(res, 500, e.message); }
@@ -600,7 +718,7 @@ const server = http.createServer(async (req, res) => {
 
 server.on('clientError', (e, sock) => { try { sock.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch {} });
 
-console.log('[boot] 首次扫描资料目录…');
-try { sync({ initial: true }); } catch (e) { console.error('[boot] 扫描失败', e); }
-server.listen(PORT, '0.0.0.0', () => console.log(`[boot] LAN Library 已启动 :${PORT} （仅内网）`));
-setInterval(() => { try { sync(); } catch (e) { console.error('[scan]', e.message); } }, SCAN_INTERVAL * 60 * 1000);
+console.log('[boot] 首次扫描资料目录与工作目录…');
+try { runSync(); } catch (e) { console.error('[boot] 扫描失败', e); }
+server.listen(PORT, '0.0.0.0', () => console.log(`[boot] 已启动 :${PORT} （仅内网）`));
+setInterval(() => { try { runSync(); } catch (e) { console.error('[scan]', e.message); } }, SCAN_INTERVAL * 60 * 1000);

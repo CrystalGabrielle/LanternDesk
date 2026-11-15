@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你愿意改进 LAN Library！无论是修 bug、补文档、加格式支持，还是分享自己的部署经验，都欢迎。
+感谢你愿意改进「灯下 · Lantern Desk」！无论是修 bug、补文档、加格式支持，还是分享自己的部署经验，都欢迎。
 
 ## 先读这几条设计原则
 
@@ -17,8 +17,8 @@
 ## 开发环境
 
 ```bash
-git clone https://github.com/<your-name>/lan-library.git
-cd lan-library
+git clone https://github.com/<your-name>/lantern-desk.git
+cd lantern-desk
 cp .env.example .env
 mkdir -p /tmp/ll-dev/books/小说 /tmp/ll-dev/data /tmp/ll-dev/public
 echo "第一章 测试内容" > "/tmp/ll-dev/books/小说/样例.txt"

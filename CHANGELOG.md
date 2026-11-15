@@ -1,6 +1,7 @@
 # 更新日志
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格，版本号采用语义化版本。日期格式为 `YYYY-MM-DD`。
+**本项目完全由 AI 生成**：以下每个版本的架构、代码、示意图与文档均由 AI 助手产出，未人工逐行编写。
 
 ## [Unreleased]
 
@@ -11,6 +12,28 @@
 - OPDS 目录服务，方便阅读类 App 接入
 - 可选的多用户与只读角色
 - 界面文案国际化
+
+## [0.3.0] - 2026-11-15
+
+### 新增
+
+- **Word / PowerPoint / Excel 网页预览**：新增 `public/office.js`，用内置的 JSZip 原生解析 OOXML——DOCX 渲染标题 / 加粗 / 表格 / 内嵌图片，PPTX 逐页幻灯片（文字 / 图片 / 备注），XLSX 多 Sheet 表格，CSV 表格视图；全部离线、无新依赖、无在线转换服务。
+- **旧版 Office 兜底**：`.doc / .ppt / .xls / WPS / RTF` 由服务端尽力提取正文，保留分页阅读与进度；解析失败自动退回纯文本。
+- **工作台 · 工作文件智能整理**：新增独立目录 `WORK_ROOT`、`work_files` / `work_projects` 表与 `server/work.js`。导入任意工作文件时自动识别**所属项目、业务日期、文档类型**并标注识别来源，归档到 `<项目>/<年>/<年-月>/`。
+- **识别规则**：文件名标记 / 项目库匹配 / 目录名 / 文件名首段；日期支持完整日期、紧凑日期、年月、季度、年度，并可读取 OOXML `docProps/core.xml` 的创建时间；类型覆盖方案、需求、汇报、合同、预算、数据报表等 14 类。
+- **手动锁定**：编辑过的项目 / 日期 / 类型写入 `locked` 字段，扫描与「重跑规则」都不会覆盖；支持项目 CRUD、文件编辑 / 置顶 / 状态 / 备注 / 移出（原文件保留）。
+- **工作台 UI**：项目 / 时间双分组、多维筛选、归档信息编辑弹窗、导入页签、「AI 识别」「重跑规则」「归档镜像」操作；桌面与手机端适配。
+- **AI 辅助归档**：`/api/work/ai-classify` 用用户自己的 OpenAI 兼容账户批量推断项目与日期；未配置 Key 时纯离线规则照常可用。
+- **工作台归档镜像**：`_工作台分类/<项目>/<年-月>/<类型>/` 硬链接视图，零额外空间。
+- **书库 → 工作台**：图书卡片菜单「加入工作台」只新增索引引用，原位置不变。
+- **Figma 展示板**：`docs/figma/` 下 7 张可编辑矢量画板、总览 SVG / PNG、浏览器预览页与生成脚本，可直接拖入 Figma。
+- **开源品牌**：项目命名「灯下 · Lantern Desk」，MIT 许可，README / API / 部署文档全面更新，并显著标注「本项目完全由 AI 生成」。
+
+### 修复
+
+- 导入工作文件后，识别结果先落库，避免随后全量扫描按归档目录名重新推断导致响应与数据库不一致。
+- 「`2026Q3`」「`2026-03`」等日期形态不再被误判为项目名；季度 / 年月日期正则去掉单词边界，能正确命中 `项目_2026Q3_汇报.pptx` 这类文件名。
+- 补上顶部「导入」按钮的事件绑定（旧版按钮未挂载点击处理）。
 
 ## [0.2.0] - 2026-11-15
 
@@ -48,6 +71,7 @@
 
 ---
 
-[Unreleased]: https://github.com/<your-name>/lan-library/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/<your-name>/lan-library/releases/tag/v0.2.0
-[0.1.0]: https://github.com/<your-name>/lan-library/releases/tag/v0.1.0
+[Unreleased]: https://github.com/<your-name>/lantern-desk/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.3.0
+[0.2.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.2.0
+[0.1.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.1.0

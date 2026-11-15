@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6f7fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>内网图书馆</title>
+<title>灯下 · Lantern Desk</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
     <button class="icon-btn menu-btn" id="btnMenu" aria-label="菜单"></button>
     <div class="brand" id="brand">
       <span class="brand-mark"></span>
-      <span class="brand-text">内网图书馆</span>
+      <span class="brand-text">灯下 <small>Lantern Desk</small></span>
       <span class="brand-badge">LAN</span>
     </div>
     <div class="search-wrap">
@@ -35,9 +35,10 @@
     <aside class="sidebar" id="sidebar">
       <div class="side-scroll">
         <section class="side-block">
-          <div class="side-title">书库</div>
+          <div class="side-title">空间</div>
           <button class="side-item active" data-view="folders"><span class="ico" data-ico="folder"></span><span>按目录浏览</span></button>
           <button class="side-item" data-view="all"><span class="ico" data-ico="grid"></span><span>全部藏书</span><em id="cntAll">0</em></button>
+          <button class="side-item" data-view="work"><span class="ico" data-ico="briefcase"></span><span>工作台 · 工作文件</span><em id="cntWork">0</em></button>
           <button class="side-item" data-view="reading"><span class="ico" data-ico="clock"></span><span>继续阅读</span><em id="cntReading">0</em></button>
           <button class="side-item" data-view="marks"><span class="ico" data-ico="bookmark"></span><span>我的书签</span><em id="cntMarks">0</em></button>
           <button class="side-item" data-view="recent"><span class="ico" data-ico="spark"></span><span>最近添加</span></button>
@@ -87,6 +88,7 @@
         </div>
       </div>
       <div class="filter-bar" id="filterBar"></div>
+      <div class="work-bar hidden" id="workBar"></div>
       <div class="crumbs" id="crumbs"></div>
       <div class="book-area" id="bookArea"></div>
       <div class="pager" id="pager"></div>
@@ -95,6 +97,7 @@
 
   <nav class="mobile-nav">
     <button class="m-item active" data-view="folders"><span class="ico" data-ico="folder"></span><span>书库</span></button>
+    <button class="m-item" data-view="work"><span class="ico" data-ico="briefcase"></span><span>工作台</span></button>
     <button class="m-item" data-view="shelves"><span class="ico" data-ico="shelf"></span><span>书架</span></button>
     <button class="m-item" data-view="marks"><span class="ico" data-ico="bookmark"></span><span>书签</span></button>
     <button class="m-item" data-view="ai"><span class="ico" data-ico="spark"></span><span>AI</span></button>
@@ -153,7 +156,7 @@
 <div id="loginMask" class="login-mask hidden">
   <form class="login-card" id="loginForm">
     <div class="brand-mark big"></div>
-    <h2>内网图书馆</h2>
+    <h2>灯下 · Lantern Desk</h2>
     <p>此站点已启用访问口令</p>
     <input type="password" id="loginPin" placeholder="请输入访问口令" autocomplete="current-password">
     <button class="btn primary wide" type="submit">进入</button>
@@ -163,6 +166,7 @@
 
 <script src="/vendor/jszip.min.js"></script>
 <script src="/vendor/pdf.js"></script>
+<script src="/office.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

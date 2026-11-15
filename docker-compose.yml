@@ -1,6 +1,6 @@
 # =============================================================================
-# LAN Library —— 仅局域网的数字图书馆
-# 所有可变配置都来自 .env（复制自 .env.example），本文件不含任何私有信息。
+# 灯下 · Lantern Desk —— 仅局域网的私人书库与工作台
+# 服务名 / 容器名沿用 lan-library 以兼容已有部署；所有可变配置都来自 .env，本文件不含任何私有信息。
 # =============================================================================
 services:
   lan-library:
@@ -22,6 +22,9 @@ services:
       BOOKS_ROOT: /lanpublic/${LIBRARY_SUBDIR:-学习资料}
       PUBLIC_ROOT: /lanpublic
       SCAN_INTERVAL_MIN: "${SCAN_INTERVAL_MIN:-10}"
+      # 工作文件目录与归档镜像（与书库平级，同一挂载点内才能创建硬链接）
+      WORK_DIR: "${WORK_DIR:-_工作文件}"
+      WORK_MIRROR_DIR: "${WORK_MIRROR_DIR:-_工作台分类}"
       TZ: "${TZ:-Asia/Shanghai}"
 
     volumes:

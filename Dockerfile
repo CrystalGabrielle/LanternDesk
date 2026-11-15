@@ -1,10 +1,10 @@
 # =============================================================================
-# LAN Library —— 单容器、零 npm 依赖（PDF.js / JSZip 已内置在 public/vendor）
+# Lantern Desk —— 单容器、零 npm 依赖（PDF.js / JSZip 已内置在 public/vendor）
 # 基础镜像：官方 Node 22 LTS（内置 node:sqlite，无需 sqlite3 原生编译）
 # =============================================================================
 FROM node:22-bookworm-slim
 
-LABEL org.opencontainers.image.title="LAN Library" \
+LABEL org.opencontainers.image.title="Lantern Desk" \
       org.opencontainers.image.description="Intranet-only digital library for local study materials" \
       org.opencontainers.image.licenses="MIT"
 
