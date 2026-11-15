@@ -11,7 +11,7 @@ const COVERS = require('./covers');
 const W = require('./work');
 
 const { db, now, getSetting, setSetting, BOOKS_ROOT, DATA_DIR, PUBLIC_ROOT,
-  IMPORT_DIR, MIRROR_DIR, READABLE, guessCategory, guessSubcategory,
+  IMPORT_DIR, MIRROR_DIR, READABLE, NOTE_EXTS, guessCategory, guessSubcategory,
   classify, sync, lastScan, materializeMirror } = C;
 const PORT = Number(process.env.PORT || 8090);
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
@@ -32,7 +32,14 @@ const MIME = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.pdf': 'application/pdf', '.epub': 'application/epub+zip',
-  '.txt': 'text/plain', '.md': 'text/plain', '.mht': 'message/rfc822', '.htm': 'text/html',
+  '.txt': 'text/plain; charset=utf-8', '.md': 'text/markdown; charset=utf-8',
+  '.markdown': 'text/markdown; charset=utf-8', '.mht': 'message/rfc822',
+  '.mhtml': 'message/rfc822', '.htm': 'text/html; charset=utf-8',
+  '.xhtml': 'application/xhtml+xml', '.rst': 'text/plain; charset=utf-8',
+  '.adoc': 'text/plain; charset=utf-8', '.org': 'text/plain; charset=utf-8',
+  '.yml': 'text/yaml; charset=utf-8', '.yaml': 'text/yaml; charset=utf-8',
+  '.jsonl': 'application/jsonl+json; charset=utf-8', '.toml': 'text/plain; charset=utf-8',
+  '.opml': 'text/x-opml; charset=utf-8', '.tex': 'text/plain; charset=utf-8',
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac', '.m4a': 'audio/mp4',
   '.ogg': 'audio/ogg', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
   '.m4v': 'video/mp4', '.zip': 'application/zip', '.rar': 'application/vnd.rar',
@@ -68,12 +75,13 @@ async function readJSON(req) {
   try { return JSON.parse(b.toString('utf8')); } catch { throw new Error('JSON 格式错误'); }
 }
 
-function serveFile(req, res, abs, { download = false, name = '' } = {}) {
+function serveFile(req, res, abs, { download = false, name = '', headers: extra = {} } = {}) {
   let st;
   try { st = fs.statSync(abs); } catch { return fail(res, 404, '文件不存在'); }
   if (!st.isFile()) return fail(res, 404, '不是文件');
   const type = mimeOf(abs);
-  const headers = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=0' };
+  const headers = { 'Content-Type': type, 'Accept-Ranges': 'bytes',
+    'Cache-Control': 'private, max-age=0', 'X-Content-Type-Options': 'nosniff', ...extra };
   if (download) {
     const fn = name || path.basename(abs);
     headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(fn)}"; filename*=UTF-8''${encodeURIComponent(fn)}`;
@@ -156,6 +164,25 @@ function legacyOfficeText(buf) {
   if (cur.trim().length >= 4) out.push(cur.trim());
   return out.join('\n').replace(/\n{3,}/g, '\n\n').slice(0, 300000);
 }
+/* 统一读取文本：老资料里的 GBK / GB18030 自动回退，UTF-8 BOM 去掉 */
+function decodeSource(abs) {
+  const buf = fs.readFileSync(abs);
+  const utf8 = buf.toString('utf8').replace(/^\uFEFF/, '');
+  if ((utf8.match(/\uFFFD/g) || []).length > 3) {
+    try { return new TextDecoder('gb18030').decode(buf).replace(/^\uFEFF/, ''); } catch {}
+  }
+  return utf8;
+}
+function htmlToText(s) {
+  return String(s || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"').replace(/&#0?39;/gi, "'").replace(/&amp;/gi, '&')
+    .replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n');
+}
+const NOTE_SET = new Set(NOTE_EXTS);
+const HTML_TEXT_EXT = new Set(['html', 'htm', 'xhtml', 'mht', 'mhtml']);
 function extractText(abs, ext) {
   const buf = fs.readFileSync(abs);
   if (ext === 'rtf') {
@@ -163,14 +190,11 @@ function extractText(abs, ext) {
       .replace(/\{\\\*?[^}]*\}|\\par[d]?|\\[a-z]+-?\d* ?|[{}]/gi, ' ').replace(/[ \t]{2,}/g, ' ');
   }
   if (['doc', 'ppt', 'xls', 'wps', 'et', 'dps'].includes(ext)) return legacyOfficeText(buf);
-  if (['txt', 'md', 'csv', 'mht', 'htm', 'html'].includes(ext)) {
-    const utf8 = buf.toString('utf8');
-    // 老资料里常见 GBK / GB18030 编码，UTF-8 解码出现大量替换符时自动回退
-    if ((utf8.match(/\uFFFD/g) || []).length > 3) {
-      try { return new TextDecoder('gb18030').decode(buf).replace(/^\uFEFF/, ''); } catch {}
-    }
-    return utf8.replace(/^\uFEFF/, '');
+  if (NOTE_SET.has(ext)) {
+    const s = decodeSource(abs);
+    return HTML_TEXT_EXT.has(ext) ? htmlToText(s) : s;
   }
+  if (['txt', 'csv'].includes(ext)) return decodeSource(abs);
   if (['mobi', 'azw', 'azw3', 'prc'].includes(ext) && buf.length > 100) {
     const count = buf.readUInt16BE(76);
     const recs = [];
@@ -204,7 +228,8 @@ add('GET', '/api/state', ({ res, req }) => {
   const shelves = db.prepare('SELECT COUNT(*) n FROM shelves').get().n;
   const marks = db.prepare('SELECT COUNT(*) n FROM bookmarks').get().n;
   const reading = db.prepare('SELECT COUNT(*) n FROM progress WHERE percent>0 AND percent<100').get().n;
-  ok(res, { total, shelves, marks, reading, scan: lastScan(),
+  const notes = db.prepare("SELECT COUNT(*) n FROM books WHERE hidden=0 AND missing=0 AND is_asset=0 AND kind='note'").get().n;
+  ok(res, { total, notes, shelves, marks, reading, scan: lastScan(),
     lastScanAt: Number(getSetting('last_scan', '0')),
     intervalMin: SCAN_INTERVAL, authEnabled: !!getSetting('pin_hash', ''),
     authenticated: authed(req), ai: aiPublic(),
@@ -495,6 +520,43 @@ add('GET', '/api/text/([^/]+)', ({ res, parts }) => {
   } catch (e) { fail(res, 500, e.message); }
 });
 
+/* --- 笔记渲染源与相对资源（书库） --- */
+const NOTE_LIMIT = 6 * 1024 * 1024;
+const ASSET_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'ico',
+  'woff', 'woff2', 'ttf', 'otf']);
+function notePayload(abs, ext, title, asset) {
+  const src = decodeSource(abs);
+  return { ext, title, source: src.slice(0, NOTE_LIMIT), asset, truncated: src.length > NOTE_LIMIT };
+}
+function assetPath(res, srcAbs, root, relRaw) {
+  const rel = String(relRaw || '').trim();
+  if (!rel || rel.length > 512 || /[\u0000-\u001f]/.test(rel) ||
+    /^[a-z][a-z0-9+.-]*:/i.test(rel) || /^([/\\]|[a-z]:)/i.test(rel))
+    { fail(res, 400, '资源路径不合法'); return null; }
+  const base = path.resolve(root);
+  const abs = path.resolve(path.dirname(srcAbs), rel);
+  if (!abs.startsWith(base + path.sep)) { fail(res, 403, '资源不在允许目录内'); return null; }
+  try {
+    const real = fs.realpathSync(abs);
+    if (!real.startsWith(base + path.sep)) { fail(res, 403, '资源不在允许目录内'); return null; }
+  } catch { fail(res, 404, '资源不存在'); return null; }
+  if (!ASSET_EXT.has(path.extname(abs).slice(1).toLowerCase()))
+    { fail(res, 403, '只允许图片与字体资源'); return null; }
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) { fail(res, 404, '资源不存在'); return null; }
+  return abs;
+}
+const ASSET_HEADERS = { 'Content-Security-Policy': "sandbox; default-src 'none'; img-src data:" };
+add('GET', '/api/note/([^/]+)', ({ res, parts }) => {
+  const r = resolveBook(res, parts[0]); if (!r) return;
+  try { ok(res, notePayload(r.abs, r.b.ext, r.b.title, '/api/asset/' + r.b.id + '?p=')); }
+  catch (e) { fail(res, 500, e.message); }
+});
+add('GET', '/api/asset/([^/]+)', ({ req, res, q, parts }) => {
+  const r = resolveBook(res, parts[0]); if (!r) return;
+  const abs = assetPath(res, r.abs, BOOKS_ABS, q.get('p')); if (!abs) return;
+  serveFile(req, res, abs, { headers: ASSET_HEADERS });
+});
+
 /* ==================== 工作台：工作文件智能整理 ==================== */
 function resolveWork(res, id) {
   const r = db.prepare('SELECT * FROM work_files WHERE id=?').get(Number(id));
@@ -579,6 +641,17 @@ add('GET', '/api/work/text/([^/]+)', ({ res, parts }) => {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(t.slice(0, 6 * 1024 * 1024));
   } catch (e) { fail(res, 500, e.message); }
+});
+add('GET', '/api/work/note/([^/]+)', ({ res, parts }) => {
+  const r = resolveWork(res, parts[0]); if (!r) return;
+  try { ok(res, notePayload(r.abs, r.r.ext, r.r.title, '/api/work/asset/' + r.r.id + '?p=')); }
+  catch (e) { fail(res, 500, e.message); }
+});
+add('GET', '/api/work/asset/([^/]+)', ({ req, res, q, parts }) => {
+  const r = resolveWork(res, parts[0]); if (!r) return;
+  const root = r.r.root === 'books' ? BOOKS_ABS : path.resolve(W.WORK_ROOT);
+  const abs = assetPath(res, r.abs, root, q.get('p')); if (!abs) return;
+  serveFile(req, res, abs, { headers: ASSET_HEADERS });
 });
 
 /* --- AI --- */

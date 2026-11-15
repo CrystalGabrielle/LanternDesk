@@ -70,7 +70,7 @@ function toast(msg, ms = 2800) {
 }
 const fmtSize = n => n > 1 << 30 ? (n / (1 << 30)).toFixed(1) + ' GB' : n > 1 << 20 ? (n / (1 << 20)).toFixed(1) + ' MB' : n > 1024 ? (n / 1024).toFixed(0) + ' KB' : n + ' B';
 const fmtDate = t => t ? new Date(t).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-const KIND_LABEL = { ebook: '电子书', document: '文档', audio: '音频', video: '视频', image: '图片', archive: '压缩包', other: '其他' };
+const KIND_LABEL = { ebook: '电子书', document: '文档', note: '笔记', audio: '音频', video: '视频', image: '图片', archive: '压缩包', other: '其他' };
 
 /* ------------------------------ 状态 ------------------------------ */
 const S = {
@@ -940,14 +940,15 @@ function openWorkFile(f) {
     format: (f.ext || 'FILE').toUpperCase(), kind: 'document', size: f.size, path: f.path,
     rawUrl: f.book_id ? '/api/raw/' + f.book_id : '/api/work/raw/' + f.id,
     dlUrl: f.book_id ? '/api/download/' + f.book_id : '/api/work/download/' + f.id,
-    textUrl: f.book_id ? '/api/text/' + f.book_id : '/api/work/text/' + f.id
+    textUrl: f.book_id ? '/api/text/' + f.book_id : '/api/work/text/' + f.id,
+    noteUrl: f.book_id ? '/api/note/' + f.book_id : '/api/work/note/' + f.id
   });
 }
 function workEditModal(f) {
   const projects = [...new Set([...S.work.projects.map(p => p.name), ...(S.work.facets.projects || []).map(p => p.k), f.project])].filter(Boolean);
   const types = ['其他文档', ...new Set([...(S.work.facets.types || []).map(t => t.k), ...[
     '会议纪要', '方案 / 规划', '需求 / PRD', '设计 / 原型', '汇报 / 总结', '合同 / 法务',
-    '预算 / 财务', '数据 / 报表', '测试 / QA', '调研 / 评审', '计划 / 排期', '通知 / 公文', '简历 / 人事', '讲义 / 培训']])];
+    '预算 / 财务', '数据 / 报表', '测试 / QA', '调研 / 评审', '计划 / 排期', '通知 / 公文', '简历 / 人事', '讲义 / 培训', '笔记 / 速记']])];
   const m = modal({ title: '编辑归档信息 · ' + f.title.slice(0, 18),
     body: `<div class="form-row"><label>所属项目</label>
         <select id="weProject"><option value="未归档">未归档</option>${projects.filter(p => p !== '未归档').map(p => `<option value="${esc(p)}" ${p === f.project ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
@@ -1005,7 +1006,7 @@ function projectModal(p) {
 }
 
 /* ============================== 阅读器 ============================== */
-const R = { book: null, mode: null, pdf: {}, epub: {}, text: {}, office: {}, progress: {}, ctxText: '',
+const R = { book: null, mode: null, pdf: {}, epub: {}, text: {}, office: {}, note: {}, progress: {}, ctxText: '',
   history: [], aiOpen: false, panel: null, lastWrite: 0, saveTimer: null, serverUpdated: 0, zoom: 1 };
 const stage = () => $('#rStage');
 const setLoc = (loc, pct) => {
@@ -1025,7 +1026,7 @@ function saveProgress(pct, locator, immediate = false) {
 }
 async function openReader(book, jumpLocator) {
   R.book = book; R.history = []; R.ctxText = ''; R.zoom = 1;
-  R.pdf = {}; R.epub = {}; R.text = {}; R.office = {};
+  R.pdf = {}; R.epub = {}; R.text = {}; R.office = {}; R.note = {};
   $('#reader').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   $('#rTitle').textContent = book.title;
@@ -1035,6 +1036,8 @@ async function openReader(book, jumpLocator) {
   const ext = (book.ext || '').toLowerCase();
   if (ext === 'pdf') R.mode = 'pdf';
   else if (ext === 'epub') R.mode = 'epub';
+  // Markdown / HTML / MHTML / rst / Org / AsciiDoc / JSON 等统一走笔记渲染引擎
+  else if (window.Notes && Notes.isNote(ext)) R.mode = 'note';
   else if (['mht', 'htm', 'html'].includes(ext)) R.mode = 'html';
   else if (['txt', 'md', 'mobi', 'azw', 'azw3', 'prc'].includes(ext)) R.mode = 'text';
   // Word / PowerPoint / Excel（含 CSV）用内置 OOXML 引擎还原排版
@@ -1055,12 +1058,14 @@ async function openReader(book, jumpLocator) {
 function closeReader() {
   if (R.book) saveProgress(R.progress.percent || 0, R.progress.locator || {}, true);
   $('#reader').classList.add('hidden'); document.body.style.overflow = '';
+  $('#rContent').onscroll = null;
   clearInterval(R.watchTimer); R.book = null; closeModal();
 }
 async function loadReaderContent(loc) {
   const b = R.book, url = b.rawUrl || '/api/raw/' + b.id;
   if (R.mode === 'pdf') return loadPdf(loc);
   if (R.mode === 'epub') return loadEpub(loc);
+  if (R.mode === 'note') return loadNote(loc);
   if (R.mode === 'text' || R.mode === 'html') return loadText(loc, R.mode === 'html');
   if (R.mode === 'office') return loadOffice(loc);
   if (R.mode === 'legacy') return loadLegacy(loc);
@@ -1170,6 +1175,45 @@ async function renderEpub() {
   updateCtxHint(); highlightToc();
 }
 function epubGo(i) { if (!R.epub.spine) return; R.epub.idx = Math.min(Math.max(0, i), R.epub.spine.length - 1); renderEpub(); $('#rContent').scrollTop = 0; }
+
+/* --- 笔记：Markdown / HTML / MHTML / rst / Org / AsciiDoc / JSON 等 --- */
+async function loadNote(loc) {
+  if (!window.Notes) return fallback('笔记渲染组件未加载');
+  try {
+    const resp = await fetch(R.book.noteUrl || '/api/note/' + R.book.id);
+    if (!resp.ok) throw new Error('读取失败 ' + resp.status);
+    const d = await resp.json();
+    const p = Notes.parse(d.source, d.ext, { assetBase: d.asset });
+    stage().innerHTML = '<article class="note-page note-' + p.kind + '" id="noteBody">' + p.html + '</article>';
+    const box = $('#rContent');
+    R.note = { headings: p.headings, text: p.text,
+      scroll: Math.max(0, Math.min(100, Number(loc.scroll || 0))) };
+    R.ctxText = p.text.slice(0, 8000);
+    $$('a[data-note-link]', stage()).forEach(a => {
+      a.onclick = e => { e.preventDefault(); toast('内链指向本地文件，可下载原文查看：' + (a.dataset.noteLink || '')); };
+    });
+    const restore = () => {
+      const max = box.scrollHeight - box.clientHeight;
+      if (max > 0 && R.note.scroll > 0) box.scrollTop = max * R.note.scroll / 100;
+      setLoc('笔记 · ' + Math.round(R.note.scroll) + '%', R.note.scroll);
+    };
+    const showPct = () => {
+      const max = box.scrollHeight - box.clientHeight;
+      const pct = max > 0 ? Math.min(100, Math.max(0, box.scrollTop / max * 100)) : 100;
+      R.note.scroll = pct;
+      setLoc('笔记 · ' + Math.round(pct) + '%', pct);
+      saveProgress(pct, { type: 'note', scroll: Math.round(pct * 10) / 10 });
+    };
+    let timer = null;
+    box.onscroll = () => { clearTimeout(timer); timer = setTimeout(showPct, 260); };
+    setTimeout(restore, 90);
+    $$('#noteBody img', stage()).forEach(img =>
+      img.addEventListener('load', () => { if (R.note.scroll > 0) restore(); }, { once: true }));
+    if (!R.note.scroll) saveProgress(0, { type: 'note', scroll: 0 });
+    if (d.truncated) toast('笔记较大，仅渲染前 6 MB');
+    updateCtxHint();
+  } catch (e) { fallback('笔记打开失败：' + e.message); }
+}
 
 /* --- 纯文本 / HTML / DOCX --- */
 function splitText(t, size = 2200) {
@@ -1318,6 +1362,11 @@ function startSyncWatch() {
           if (loc.type === 'pdf' && loc.page) pdfGo(loc.page);
           else if (loc.type === 'epub') epubGo(loc.idx || 0);
           else if (loc.type === 'text') textGo(loc.idx || 0);
+          else if (loc.type === 'note') {
+            const b = $('#rContent');
+            setTimeout(() => { const max = b.scrollHeight - b.clientHeight;
+              if (max > 0) b.scrollTop = max * (Number(loc.scroll) || 0) / 100; }, 60);
+          }
         }, false);
       }
     } catch {}
@@ -1336,6 +1385,11 @@ function gotoLocator(loc) {
     } else renderOfficePage(loc.idx || 0);
   }
   else if (loc.type === 'text') textGo(loc.idx || 0);
+  else if (loc.type === 'note') {
+    const b = $('#rContent');
+    setTimeout(() => { const max = b.scrollHeight - b.clientHeight;
+      if (max > 0) b.scrollTop = max * (Number(loc.scroll) || 0) / 100; }, 60);
+  }
   else if (loc.type === 'media' && $('#rMedia') && loc.time) $('#rMedia').currentTime = loc.time;
 }
 function readerPrev() {
@@ -1345,6 +1399,7 @@ function readerPrev() {
     if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = Math.max(0, b.scrollTop - b.clientHeight * .85); }
     else renderOfficePage((R.office.idx || 0) - 1);
   }
+  else if (R.mode === 'note') { const b = $('#rContent'); b.scrollTop = Math.max(0, b.scrollTop - b.clientHeight * .85); }
   else if (R.text.chunks) textGo(R.text.idx - 1);
 }
 function readerNext() {
@@ -1354,6 +1409,7 @@ function readerNext() {
     if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = b.scrollTop + b.clientHeight * .85; }
     else renderOfficePage((R.office.idx || 0) + 1);
   }
+  else if (R.mode === 'note') { const b = $('#rContent'); b.scrollTop = b.scrollTop + b.clientHeight * .85; }
   else if (R.text.chunks) textGo(R.text.idx + 1);
 }
 function showPanel(kind) {
@@ -1370,6 +1426,8 @@ function showPanel(kind) {
         ? (R.office.headings || []).map(h => ({ n: h.i, label: h.label, active: false }))
         : (R.office.pages || []).map((p, i) => ({ n: i, label: p.title || p.name || `第 ${i + 1} 页`, active: R.office.idx === i }));
     }
+    else if (R.mode === 'note') items = (R.note.headings || []).map((h, i) => ({
+      n: i, label: '\u3000'.repeat(Math.max(0, (h.level || 1) - 1)) + (h.label || '标题 ' + (i + 1)), active: false }));
     else if (R.text.chunks) items = R.text.chunks.map((_, i) => ({ n: i, label: `第 ${i + 1} 页`, active: R.text.idx === i }));
     body.innerHTML = items.map(it => `<button class="toc-item ${it.active ? 'active' : ''}" data-n="${it.n}">${esc(it.label)}</button>`).join('') || '<div style="color:var(--text3);font-size:12px;padding:12px">该格式没有目录</div>';
     body.onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = Number(b.dataset.n);
@@ -1380,6 +1438,10 @@ function showPanel(kind) {
           const h = $$('.office-doc h1,.office-doc h2,.office-doc h3', stage())[n];
           if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else renderOfficePage(n);
+      }
+      else if (R.mode === 'note') {
+        const h = (R.note.headings || [])[n];
+        if (h) { const el = document.getElementById(h.id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       }
       else textGo(n);
       showPanel('toc'); };
@@ -1402,7 +1464,7 @@ function addBookmark() {
   const officeLabel = R.office && R.office.kind === 'slide' ? `第 ${(R.office.idx || 0) + 1} 页幻灯片`
     : R.office && R.office.kind === 'sheet' ? `第 ${(R.office.idx || 0) + 1} 张工作表` : 'Word 文档';
   const labelMap = { pdf: `第 ${R.pdf.page || 1} 页`, epub: `第 ${(R.epub.idx || 0) + 1} 章`,
-    text: `第 ${(R.text.idx || 0) + 1} 页`, office: officeLabel };
+    text: `第 ${(R.text.idx || 0) + 1} 页`, note: `笔记 · ${Math.round(R.progress.percent || 0)}%`, office: officeLabel };
   const m = modal({ title: '添加书签',
     body: `<div class="form-row"><label>书签名称</label><input id="bmLabel" value="${esc(labelMap[R.mode] || '书签')}"></div>
       <div class="form-row"><label>备注（可选）</label><textarea id="bmNote" placeholder="记录一下想法…"></textarea></div>`,
@@ -1423,6 +1485,7 @@ const applyTextZoom = () => {
   const t = $('.text-page', stage()); if (t) t.style.fontSize = (14 + R.zoom * 2) + 'px';
   const o = $('.office-doc', stage()); if (o) o.style.fontSize = (14 + R.zoom * 2) + 'px';
   const s = $('.office-slide', stage()); if (s) s.style.fontSize = (14 + R.zoom * 2) + 'px';
+  const n = $('.note-page', stage()); if (n) n.style.fontSize = (14 + R.zoom * 2) + 'px';
 };
 $('#rZoomIn').onclick = () => { R.zoom = Math.min(2, R.zoom + .15); if (R.mode === 'pdf') { R.pdf.zoom = R.zoom; renderPdf(); } else applyTextZoom(); };
 $('#rZoomOut').onclick = () => { R.zoom = Math.max(.6, R.zoom - .15); if (R.mode === 'pdf') { R.pdf.zoom = R.zoom; renderPdf(); } };
@@ -1434,6 +1497,8 @@ $('#rProgress').oninput = e => {
     if (R.office.kind === 'doc') { const b = $('#rContent'); b.scrollTop = (b.scrollHeight - b.clientHeight) * pct / 100; }
     else renderOfficePage(Math.round(R.office.pages.length * pct / 100));
   }
+  else if (R.mode === 'note') { const b = $('#rContent'), max = b.scrollHeight - b.clientHeight;
+    if (max > 0) b.scrollTop = max * pct / 100; }
   else if (R.text.chunks) textGo(Math.round(R.text.chunks.length * pct / 100));
 };
 $('#rBack').innerHTML = icon('back'); $('#rToc').innerHTML = icon('toc'); $('#rMark').innerHTML = icon('bookmark');

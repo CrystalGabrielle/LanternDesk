@@ -124,6 +124,17 @@ const setSetting = (k, v) => db.prepare(
 ).run(k, String(v));
 
 /* --------------------------- 格式与分类 --------------------------- */
+// 笔记 / 轻量标记 / 源码文本：统一由前端 notes.js 渲染，服务端只做索引与文本提取
+const NOTE_EXTS = [
+  'md', 'markdown', 'mdown', 'mkd', 'mdx',
+  'html', 'htm', 'xhtml', 'mht', 'mhtml',
+  'rst', 'rest', 'adoc', 'asciidoc', 'asc', 'org', 'textile', 'wiki', 'mediawiki',
+  'json', 'jsonc', 'jsonl', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+  'xml', 'opml', 'tex', 'latex', 'sql',
+  'py', 'js', 'mjs', 'ts', 'jsx', 'tsx', 'sh', 'bash', 'bat', 'ps1',
+  'css', 'scss', 'less', 'c', 'h', 'cpp', 'cc', 'java', 'go', 'rs', 'php', 'rb',
+  'diff', 'patch', 'properties', 'vue', 'svelte', 'graphql', 'proto'
+];
 const KIND_BY_EXT = {
   pdf: 'ebook', epub: 'ebook', mobi: 'ebook', azw: 'ebook', azw3: 'ebook',
   txt: 'ebook', md: 'ebook', fb2: 'ebook', djvu: 'ebook', chm: 'ebook',
@@ -137,7 +148,16 @@ const KIND_BY_EXT = {
   jpg: 'image', jpeg: 'image', png: 'image', webp: 'image', gif: 'image', bmp: 'image', tif: 'image', tiff: 'image',
   rar: 'archive', zip: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', iso: 'archive'
 };
-const READABLE = new Set(['pdf', 'epub', 'txt', 'md', 'mht', 'html', 'htm', 'docx', 'pptx', 'csv', 'mobi', 'azw', 'azw3']);
+// 笔记类格式统一归为「笔记」，便于按类型筛选（不影响原有目录层级与书架）
+for (const e of NOTE_EXTS) KIND_BY_EXT[e] = 'note';
+const READABLE = new Set(['pdf', 'epub', 'txt', 'mht', 'html', 'htm', 'docx', 'pptx', 'csv',
+  'mobi', 'azw', 'azw3', ...NOTE_EXTS]);
+// 幂等迁移：把已入库的笔记类文件类型纠正为 note（sync 只重算有变动的文件）
+try {
+  const ph = NOTE_EXTS.map(() => '?').join(',');
+  const r = db.prepare(`UPDATE books SET kind='note' WHERE lower(ext) IN (${ph}) AND kind<>'note'`).run(...NOTE_EXTS);
+  if (r.changes) console.log('[migrate] 笔记类型已纠正:', r.changes);
+} catch (e) { console.error('[migrate] 笔记类型迁移失败:', e.message); }
 const PLAYABLE = new Set(['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'mp4', 'webm', 'mov', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']);
 
 // 顶层文件夹 → 一级分类
@@ -391,7 +411,7 @@ function materializeMirror() {
 
 module.exports = {
   db, now, getSetting, setSetting, DATA_DIR, BOOKS_ROOT, PUBLIC_ROOT,
-  IMPORT_DIR, MIRROR_DIR, READABLE, PLAYABLE, KIND_BY_EXT,
+  IMPORT_DIR, MIRROR_DIR, READABLE, PLAYABLE, KIND_BY_EXT, NOTE_EXTS,
   guessCategory, guessSubcategory, classify, sync, recomputePaths,
   dirnameOf, isCoverAsset, safeSeg,
   lastScan: () => lastScan, materializeMirror, ensureDefaultShelves

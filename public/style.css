@@ -361,6 +361,49 @@ textarea{resize:vertical;min-height:64px}
 .office-table.sheet .rowhead{background:var(--surface2);color:var(--text3);text-align:center;min-width:38px}
 .sheet-note{font-size:11.5px;color:var(--text3);margin-top:10px}
 
+/* ---------- 笔记阅读器（Markdown / HTML / MHTML / 轻量标记 / 源码） ---------- */
+.note-page{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:34px 40px;max-width:860px;margin:0 auto;line-height:1.85;font-size:16px;box-shadow:var(--shadow);overflow-wrap:anywhere}
+.note-page h1,.note-page h2,.note-page h3,.note-page h4,.note-page h5,.note-page h6{line-height:1.4;margin:1.5em 0 .6em;font-weight:700;scroll-margin-top:16px}
+.note-page h1{font-size:27px;border-bottom:1px solid var(--border);padding-bottom:.35em}
+.note-page h2{font-size:22px;margin-top:1.6em}
+.note-page h3{font-size:18px}.note-page h4{font-size:16px}.note-page h5,.note-page h6{font-size:15px;color:var(--text2)}
+.note-page p{margin:.8em 0}
+.note-page ul,.note-page ol{padding-left:1.6em;margin:.7em 0}
+.note-page li{margin:.3em 0}
+.note-page li>ul,.note-page li>ol{margin:.2em 0}
+.note-page ul.note-task{list-style:none;padding-left:.3em}
+.note-page ul.note-task li{display:flex;align-items:baseline;gap:.5em}
+.note-page input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;flex:none;transform:translateY(2px);cursor:default}
+.note-page blockquote{margin:1.1em 0;padding:.5em 1em;border-left:3px solid var(--primary);background:var(--surface2);border-radius:0 8px 8px 0;color:var(--text2)}
+.note-page blockquote>:first-child{margin-top:0}.note-page blockquote>:last-child{margin-bottom:0}
+.note-page hr{border:0;border-top:1px solid var(--border);margin:1.8em 0}
+.note-page a{color:var(--primary);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--primary) 35%,transparent)}
+.note-page a:hover{border-bottom-color:var(--primary)}
+.note-page img{max-width:100%;height:auto;border-radius:8px;margin:.6em 0;background:var(--surface2)}
+.note-page mark{background:color-mix(in srgb,var(--amber) 30%,transparent);color:inherit;padding:0 .2em;border-radius:3px}
+.note-page del{color:var(--text3)}
+.note-page kbd{font:12px ui-monospace,Consolas,monospace;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.note-page code{font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+.note-page pre.note-code{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;overflow-x:auto;margin:1.1em 0;position:relative}
+.note-page pre.note-code code{background:none;border:0;padding:0;font-size:12.5px;line-height:1.7;white-space:pre;display:block}
+.note-page pre.note-code[data-lang]:before{content:attr(data-lang);position:absolute;right:10px;top:6px;font-size:10px;color:var(--text3);letter-spacing:.06em}
+.note-page .nt-s{color:var(--green)}.note-page .nt-c{color:var(--text3);font-style:italic}
+.note-page .nt-n{color:var(--amber)}.note-page .nt-k{color:var(--primary);font-weight:600}
+.note-page .nt-t{color:var(--sky)}
+.note-page table{border-collapse:collapse;width:100%;font-size:14px;margin:1.1em 0}
+.note-page th,.note-page td{border:1px solid var(--border);padding:7px 10px;vertical-align:top}
+.note-page th{background:var(--surface2);font-weight:600;text-align:left}
+.note-page tr:nth-child(even) td{background:color-mix(in srgb,var(--surface2) 45%,transparent)}
+.note-page table.note-front{border:1px solid var(--border);border-radius:8px;background:var(--surface2);font-size:12.5px;margin:0 0 1.6em}
+.note-page table.note-front th{width:110px;background:none;border:0;color:var(--text3);font-weight:500}
+.note-page table.note-front td{background:none;border:0;color:var(--text2)}
+.note-page ul.note-outline{list-style:none;padding-left:1.1em;border-left:1px dashed var(--border)}
+.note-page ul.note-outline>li{margin:.45em 0}
+.note-page details{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:.8em 0}
+.note-page summary{cursor:pointer;font-weight:600}
+.note-hint{font-size:11.5px;color:var(--text3)}
+.note-page.note-code{white-space:normal}
+
 /* ---------- 响应式 ---------- */
 @media (max-width:1080px){
   :root{--side:212px}
@@ -426,6 +469,10 @@ textarea{resize:vertical;min-height:64px}
   .reader .r-panel,.reader .ai-panel{position:absolute;right:0;top:0;bottom:0;width:100%;z-index:10;box-shadow:var(--shadow-lg)}
   .r-content{padding:10px}
   .text-page{padding:18px 16px;font-size:15px}
+  .note-page{padding:20px 16px;font-size:15px;border-radius:10px}
+  .note-page h1{font-size:22px}.note-page h2{font-size:19px}
+  .note-page pre.note-code{padding:10px 12px}
+  .note-page table{display:block;overflow-x:auto;white-space:nowrap}
   .r-bottom{gap:5px;padding:0 8px}
   .r-bottom .r-loc{font-size:11px;min-width:40px}
   #rZoomIn,#rZoomOut{display:none}
@@ -437,4 +484,7 @@ textarea{resize:vertical;min-height:64px}
   .book-meta{font-size:10px}
   .r-actions .icon-btn{width:32px}
 }
-@media print{.topbar,.sidebar,.r-top,.r-bottom,.mobile-nav,.r-panel,.ai-panel{display:none !important}}
+@media print{.topbar,.sidebar,.r-top,.r-bottom,.mobile-nav,.r-panel,.ai-panel{display:none !important}
+  .note-page,.office-doc,.office-slide{box-shadow:none;border:0;max-width:100%;padding:0}
+  .note-page pre.note-code,.note-page blockquote{break-inside:avoid}
+  .note-page h1,.note-page h2,.note-page h3{break-after:avoid}}

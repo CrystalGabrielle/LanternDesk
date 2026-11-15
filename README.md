@@ -66,8 +66,9 @@
 | **工作台：工作文件整理** | 导入 Word / PPT / Excel / PDF / 图片等任意工作文件，自动识别**所属项目、业务日期、文档类型**并标记识别来源；按项目或时间分组，支持手动改、置顶、状态、备注与项目 CRUD |
 | **工作台：AI 辅助归档** | 可选让已配置的 AI 账户批量推断项目与日期；不配置时纯离线规则照常工作，手动修改过的字段永不被覆盖 |
 | **Office 在线预览** | Word（标题 / 加粗 / 表格 / 图片）、PowerPoint（逐页幻灯片 + 备注）、Excel（多 Sheet 表格）、CSV，全部在浏览器内用内置 JSZip 解析 OOXML，**无需安装 Office、无需联网** |
-| **其他格式阅读** | PDF、EPUB、TXT/MD、MOBI/AZW、MHT/HTML 网页内阅读；旧版 `.doc/.ppt/.xls` 尽力提取正文；图片/常见音视频可播放，其余格式可下载 |
-| **跨端续读与书签** | 阅读进度（含 Word 滚动位置、PPT 页码、Excel 工作表）、书签按文档存服务端，PC / Mac / 手机共享 |
+| **笔记原生渲染** | **Markdown**（标题 / 表格 / 代码块 / 任务列表 / 引用 / 图片）、**HTML / MHTML 网页存档**、reStructuredText / AsciiDoc / Org-mode / Textile / MediaWiki、JSON / YAML / XML / OPML 与常见源码，浏览器内安全排版，自动生成标题目录并按滚动位置续读 |
+| **其他格式阅读** | PDF、EPUB、TXT、MOBI/AZW 网页内阅读；旧版 `.doc/.ppt/.xls` 尽力提取正文；图片/常见音视频可播放，其余格式可下载 |
+| **跨端续读与书签** | 阅读进度（含 Word / 笔记滚动位置、PPT 页码、Excel 工作表）、书签按文档存服务端，PC / Mac / 手机共享 |
 | **书架** | 默认按顶层文件夹生成；书架与图书均可增删改查，调整归属不影响文件存储位置 |
 | **自动扫描同步** | 每 N 分钟增量扫描 + 网页手动「同步」；书库与工作台一次扫描完成，按 `path / size / mtime` 判断新增与减少 |
 | **双通道导入** | 「图书 / 资料」按智能分类落到 `_导入图书/分类/主题/`；「工作文件」按 `_工作文件/项目/年/年月/` 归档。同名不覆盖 |
@@ -298,9 +299,10 @@ lantern-desk/                    # 部署目录沿用 lan-library 也可以
 │   └── covers.js               # 封面解析 / 缓存 / SVG 兜底
 ├── public/
 │   ├── index.html              # 单页骨架
-│   ├── style.css               # 全部样式与响应式断点（含工作台、Office 阅读器）
+│   ├── style.css               # 全部样式与响应式断点（含工作台、Office 与笔记阅读器）
 │   ├── app.js                  # 前端逻辑：书库、工作台、阅读器、书架、书签、AI、封面队列
 │   ├── office.js               # Word / PPT / Excel 的 OOXML 解析与 HTML 渲染（自研，零新依赖）
+│   ├── notes.js                # Markdown / HTML / MHTML / 轻量标记 / 源码的解析、消毒与排版（自研，零新依赖）
 │   └── vendor/                 # 内置 PDF.js、JSZip、CMap 字体数据（离线可用）
 ├── deploy/
 │   └── deploy.py               # 可选：SSH 上传到 NAS 并 compose up
@@ -347,19 +349,34 @@ lantern-desk/                    # 部署目录沿用 lan-library 也可以
 | Word | **DOCX / DOCM**、DOC / WPS / RTF / ODT | **DOCX 富文本渲染**（标题、加粗、表格、内嵌图片）；旧版 DOC 尽力提取正文；ODT 提供下载 |
 | PowerPoint | **PPTX / PPTM**、PPT / DPS / ODP | **PPTX 逐页幻灯片**（标题、要点、图片、备注），可翻页 / 目录 / 进度同步；旧版 PPT 尽力提取正文 |
 | Excel | **XLSX / XLSM / XLTX / CSV**、XLS / ET / ODS | **XLSX 多 Sheet 表格**、CSV 表格视图；旧版 XLS 尽力提取正文 |
-| 纯文本 | TXT、MD、MHT、HTML / HTM | 可阅读，自动处理 UTF-8 / GB18030 中文编码 |
+| 笔记 · Markdown | **MD / MARKDOWN / MDOWN / MKD / MDX** | **完整渲染**：多级标题、front matter 元数据卡、粗斜体 / 删除线 / 高亮、行内代码、链接、图片、表格、任务列表、引用、围栏代码块、分隔线；自动生成标题目录 |
+| 笔记 · 网页存档 | **HTML / HTM / XHTML / MHT / MHTML** | **安全渲染**：DOMParser 白名单消毒后保留排版；MHTML 自动解码 quoted-printable / base64 内嵌图片与 `Content-Location` 映射；UTF-8 / GB18030 自动识别 |
+| 笔记 · 轻量标记 | RST / REST、ADOC / ASCIIDOC / ASC、ORG、TEXTILE、WIKI / MEDIAWIKI | 尽力转换为标题、列表、代码块、强调与表格的近似排版（轻量实现，不追求完整规范） |
+| 笔记 · 数据与源码 | JSON / JSONC / JSONL、YAML / TOML / INI / CFG、XML / OPML、TEX / SQL、常见编程语言与配置文件扩展 | JSON 自动格式化 + 语法高亮；OPML 渲染为可折叠大纲树；其余显示为等宽代码视图 |
+| 纯文本 | TXT、MOBI / AZW 文本提取、CSV（表格视图） | 分页阅读，自动处理 UTF-8 / GB18030 中文编码 |
 | 图片 | JPG / PNG / WEBP / GIF / BMP / TIFF | 可预览，带「封面 / cover」字样的图片被识别为封面素材 |
 | 音视频 | MP3 / WAV / FLAC / M4A / OGG、MP4 / WEBM / MOV / M4V | 可播放 |
 | 其他 | RMVB / RM / FLV / WMV / VOB / MKV、ZIP / RAR / 7Z / ISO | 浏览器无法原生播放，提供下载 |
 
-> 新版 Office 用浏览器内置的 ZIP/XML 能力解析 OOXML，**不需要安装 Microsoft Office、不需要服务端转换、不需要联网**；旧版二进制格式（OLE）无法无损还原排版，只能尽力提取文字，建议另存为 `.docx/.pptx/.xlsx` 后重新导入。
+> 新版 Office 用浏览器内置的 ZIP/XML 能力解析 OOXML，**不需要安装 Microsoft Office、不需要服务端转换、不需要联网**；旧版二进制格式（OLE）无法无损还原排版，只能尽力提取文字，建议另存为 `.docx/.pptx/.xlsx` 后重新导入。笔记类格式统一归为「笔记」类型，可在侧栏按类型筛选。
 
-### 4. Office 在线预览实现
+### 4. 在线预览实现（Office 与笔记）
 
-- [`public/office.js`](public/office.js) 用页面已内置的 JSZip 读取 OOXML：`word/document.xml` → 段落/标题/表格/图片；`ppt/slides/slideN.xml` → 逐页文字、图片与备注；`xl/sharedStrings.xml` + `xl/worksheets/*` → 多 Sheet 单元格。
+**Office（[`public/office.js`](public/office.js)）**
+
+- 用页面已内置的 JSZip 读取 OOXML：`word/document.xml` → 段落/标题/表格/图片；`ppt/slides/slideN.xml` → 逐页文字、图片与备注；`xl/sharedStrings.xml` + `xl/worksheets/*` → 多 Sheet 单元格。
 - 输出 HTML 前统一转义，剥离脚本与外链资源；DOCX 内嵌图片经 `word/_rels/document.xml.rels` 映射后转 base64 内联，不发起任何外部请求。
 - Word 按滚动位置、PPT 按页码、Excel 按工作表记录进度与书签；选中文字可直接作为 AI 提问上下文。
 - 大表自动截断（前 300 行 / 60 列）并提示下载原文件；解析失败时自动退回服务端纯文本提取。
+
+**笔记（[`public/notes.js`](public/notes.js)，自研、零依赖）**
+
+- Markdown 解析器覆盖块级与行内语法，输出前把所有用户输入转义；轻量标记语言先转成 Markdown 再复用同一套渲染。
+- HTML / MHTML 先经 `DOMParser` + 标签 / 属性白名单消毒：移除 `script / style / iframe / object / form / svg`、所有 `on*` 事件属性、`style` 属性、`javascript:` / `vbscript:` / `data:text/html` URL；Markdown 中内嵌的 HTML 同样走这一层。
+- 相对图片只经 `GET /api/asset/:id?p=...`（或工作台版）读取：服务端校验路径必须在资料根目录内、拒绝绝对路径与协议、只允许图片/字体扩展名，并附加 `nosniff` 与 CSP sandbox。HTML 里的本地内链不跳转，点击时提示下载原文。
+- MHTML 按 `boundary` 拆段、解码 quoted-printable / base64，把 `Content-Location` / `Content-ID` 资源转成 `data:` URL 内联，离线也能看到图片。
+- 服务端 `/api/note/:id` 返回解码后的 UTF-8 原文（GB18030 自动回退，最大 6 MB）；`/api/text/:id` 对 HTML 返回去标签纯文本，供搜索与 AI 上下文使用。
+- 标题自动生成目录并支持点击跳转；滚动百分比写入 `progress.locator = { "type": "note", "scroll": 64.6 }`，换设备打开时自动恢复位置。
 
 ### 5. 工作台：工作文件智能整理
 
@@ -425,11 +442,12 @@ lantern-desk/                    # 部署目录沿用 lan-library 也可以
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | GET | `/api/health` | 健康检查（无需口令） |
-| GET | `/api/state` | 总数、书架数、封面数、工作台统计、上次扫描、AI 状态 |
+| GET | `/api/state` | 总数、笔记数、书架数、封面数、工作台统计、上次扫描、AI 状态 |
 | GET | `/api/tree` | 目录层级视图（`path` / `drill` / 分类 / 搜索等筛选） |
 | GET | `/api/books` `/api/facets` | 平铺列表、筛选、分页、排序 / 聚合 |
 | GET/POST | `/api/cover/:id` | 封面图 / 回传浏览器渲染的 PDF 首页封面 |
 | GET | `/api/raw/:id` `/api/text/:id` `/api/download/:id` | 原文件（支持 Range）/ 纯文本 / 附件下载 |
+| GET | `/api/note/:id` `/api/asset/:id?p=` | 笔记渲染原文（UTF-8 / GB18030）/ 笔记内相对图片等资源（带路径校验） |
 | GET/POST/PATCH/DELETE | `/api/shelves...` | 书架与成员增删改查 |
 | GET/PATCH/DELETE | `/api/books/:id` | 图书详情、编辑、移出 / 恢复 / 彻底删除 |
 | GET/PUT | `/api/progress/:id` | 阅读进度读写 |
@@ -453,6 +471,7 @@ lantern-desk/                    # 部署目录沿用 lan-library 也可以
 | POST | `/api/work/ai-classify` | 可选：用已配置的 AI 批量推断项目与日期 |
 | POST | `/api/work/organize` | 生成 / 重建工作台归档镜像硬链接 |
 | GET | `/api/work/raw/:id` `/api/work/text/:id` `/api/work/download/:id` | 工作文件原文件 / 文本 / 下载 |
+| GET | `/api/work/note/:id` `/api/work/asset/:id?p=` | 工作笔记渲染原文 / 笔记内相对资源 |
 
 ### AI 与设置
 
@@ -470,7 +489,8 @@ lantern-desk/                    # 部署目录沿用 lan-library 也可以
 - **没有公网入口**：`docker-compose.yml` 只把端口绑定到 `HOST_IP`，不监听 `0.0.0.0`；仓库不含 DDNS、FRP、反向代理或任何隧道配置。
 - **应用层二次校验**：服务端 `isPrivate()` 检查来源 IP，非私有网段一律返回 `403`。
 - **可选访问口令**：scrypt 加盐哈希 + HttpOnly Cookie；未设置时免登录（适合家庭内网）。
-- **数据不外传**：没有账号体系、没有遥测、没有 CDN；静态资源与第三方库全部内置。Office 文档在**浏览器本地**解析，不上传给任何转换服务。唯一可能的外连是用户主动填写 Key 后的 AI 请求。
+- **数据不外传**：没有账号体系、没有遥测、没有 CDN；静态资源与第三方库全部内置。Office 与笔记文档都在**浏览器本地**解析，不上传给任何转换服务。唯一可能的外连是用户主动填写 Key 后的 AI 请求。
+- **笔记内容消毒**：HTML / Markdown 内嵌 HTML 一律经过标签与属性白名单，脚本、事件属性与危险协议被移除；相对图片只能经带路径穿越校验的 `/api/asset` 接口读取，不加载外部资源。
 - **原文件保护**：资料目录只做索引；「删除图书 / 移出工作台」默认仅移出索引；静态资源与文件接口都做了路径穿越校验。
 - **备份**：只需备份 `DATA_HOST`（`library.db` + `covers/`）；资料目录本身不受本项目影响。
 
@@ -516,6 +536,9 @@ CI（`.github/workflows/ci.yml`）会在推送 / PR 时执行 JS 语法检查、
 
 **Q：看 Word / PPT / Excel 需要装 Office 吗？**
 不需要。DOCX / PPTX / XLSX 是 ZIP + XML，浏览器用内置的 JSZip 解析后渲染，完全离线。旧版 `.doc/.ppt/.xls` 只能尽力提取文字，建议另存为新格式再导入。
+
+**Q：Markdown / HTML 笔记里的图片、脚本和链接怎么处理？**
+Markdown 按语法渲染成排版页面（表格、代码块、任务列表、目录等）；HTML / MHTML 先经过白名单消毒，脚本、事件属性、`iframe` 与 `javascript:` 链接一律移除，不会在页面里执行。笔记里写 `![图](images/a.png)` 这类相对图片时，服务端会从笔记所在目录经 `/api/asset/:id?p=...` 读取（必须仍在资料根目录内，且只允许图片/字体）；MHTML 的内嵌图片会自动解码成 data URL。指向本地其他笔记的相对链接不会跳转，点击会提示下载原文；外部 `https://` 链接正常新窗口打开。
 
 **Q：项目 / 日期识别不准怎么办？**
 在文件行右侧菜单点「编辑归档信息」手动修改，改过的字段会自动锁定，后续扫描不会再覆盖。也可以点「AI 识别」让已配置的 AI 批量推断，或新建项目名让后续导入自动命中。

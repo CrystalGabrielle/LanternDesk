@@ -13,6 +13,26 @@
 - 可选的多用户与只读角色
 - 界面文案国际化
 
+## [0.4.0] - 2026-11-16
+
+### 新增
+
+- **笔记原生渲染引擎 `public/notes.js`**（自研、零依赖）：统一接管 Markdown / HTML / MHTML / 轻量标记 / 数据格式的浏览器端排版。
+  - **Markdown 全量渲染**：多级标题、front matter 元数据卡、粗 / 斜 / 删除线 / 高亮、行内代码、链接、图片、表格、任务列表（复选框）、引用、围栏代码块、分隔线；自动生成标题目录，按滚动位置保存与恢复进度。
+  - **HTML / MHT / MHTML 安全渲染**：`DOMParser` + 标签 / 属性白名单消毒，移除 `script / style / iframe / form / svg`、`on*` 事件与 `javascript:` / `data:text/html` 协议；MHTML 自动解码 quoted-printable / base64 内嵌资源并按 `Content-Location` 映射为 data URL。
+  - **轻量标记**：reStructuredText / AsciiDoc / Org-mode / Textile / MediaWiki 转换为近似 Markdown 后复用同一渲染器。
+  - **数据 / 源码**：JSON / JSONC / JSONL 自动格式化高亮，OPML 渲染为可折叠大纲，其余（YAML / TOML / INI / TEX / SQL / 常见编程语言）显示为等宽代码视图。
+- **笔记相对资源接口**：`GET /api/asset/:id?p=`（及工作台版 `/api/work/asset/:id`）带目录边界、协议与扩展名校验地读取笔记内图片 / 字体，响应附 `nosniff`。
+- **`GET /api/note/:id`**：返回解码后原文（UTF-8 / GB18030 自动回退，上限 6 MB）与 `asset` 标记；`/api/text/:id` 对 HTML / Markdown 返回去标签纯文本，供搜索与 AI 上下文。
+- **扫描与分类**：笔记扩展名全部进入 `READABLE` 白名单并归类 `kind=note`，侧栏与筛选可按「笔记」类型过滤；工作台类型推断新增「笔记」类。
+- 阅读器笔记模式：目录侧栏、打印样式、深色主题、手机端排版（表格 / 代码块横向滚动）。
+
+### 修复
+
+- HTML 类文件此前直接把原始 HTML 注入页面（存在脚本执行风险），现统一走白名单消毒。
+- `.md` 此前按纯文本分页显示源码，现渲染为排版页面；旧进度定位自动迁移到新的滚动定位。
+- 工作台把笔记文件名里的项目名带上扩展名（如 `项目笔记.md` → `项目笔记.md`）的问题。
+
 ## [0.3.0] - 2026-11-15
 
 ### 新增
@@ -71,7 +91,8 @@
 
 ---
 
-[Unreleased]: https://github.com/<your-name>/lantern-desk/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/<your-name>/lantern-desk/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.3.0
 [0.2.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.2.0
 [0.1.0]: https://github.com/<your-name>/lantern-desk/releases/tag/v0.1.0

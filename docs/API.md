@@ -146,6 +146,8 @@
 | GET | `/api/cover/:id` | 封面：真实图片或 SVG 文字兜底；缺失时前端会异步补 PDF 首页 |
 | POST | `/api/cover/:id` | 上传浏览器渲染的封面图（JPEG/PNG/WebP，最大 6 MB），持久化到 `DATA_DIR/covers/` |
 | GET | `/api/cover/folder?name=...&count=...` | 文件夹卡片的 SVG 封面（无需图书 id） |
+| GET | `/api/note/:id` | 笔记渲染原文：返回解码后的 UTF-8 文本（UTF-8 / GB18030 自动识别，最大 6 MB），附 `ext` 与 `asset`（布尔，标记是否存在相对资源目录） |
+| GET | `/api/asset/:id?p=images/pic.png` | 读取笔记内相对引用的资源。服务端校验：路径必须仍在资料根目录内、拒绝绝对路径 / `http(s):` 等协议 URL / 上跳目录，只允许图片与字体扩展名；响应附 `X-Content-Type-Options: nosniff` |
 
 示例：
 
@@ -154,7 +156,11 @@ curl "http://192.168.1.10:8090/api/books?kind=ebook&category=%E5%B0%8F%E8%AF%B4%
 curl -X PATCH "http://192.168.1.10:8090/api/books/42" \
   -H 'Content-Type: application/json' -d '{"title":"第03回·修订","shelves":[1,3]}'
 curl -H 'Range: bytes=0-65535' "http://192.168.1.10:8090/api/raw/42" -o head.bin
+curl "http://192.168.1.10:8090/api/note/42"
+curl "http://192.168.1.10:8090/api/asset/42?p=images/pic.png" -o pic.png
 ```
+
+> 笔记渲染流水线：前端从 `/api/note/:id` 取原文，交给 [`public/notes.js`](../public/notes.js)（Markdown / HTML / MHTML / 轻量标记 / 数据格式）解析并消毒；相对图片统一经 `/api/asset/:id` 加载，笔记外的路径一律 403。工作台文件使用对应接口 `/api/work/note/:id` 与 `/api/work/asset/:id`，语义完全一致。
 
 ---
 
@@ -345,6 +351,10 @@ curl -X POST "$BASE/api/work/import" \
 ### `GET /api/work/raw/:id` `/api/work/text/:id` `/api/work/download/:id`
 
 工作文件的原文件（支持 Range）、纯文本（旧版 Office 文本提取或 OOXML 全文兜底）、附件下载。前端阅读器对没有 `book_id` 的工作文件用**负数 id** 复用同一套进度 / 书签 / AI 历史接口，不会与图书主键冲突。
+
+### `GET /api/work/note/:id` `/api/work/asset/:id?p=...`
+
+与图书侧 `/api/note` / `/api/asset` 语义一致：前者返回笔记渲染原文（含 `ext` / `asset` 标记），后者带路径校验地读取工作笔记内的相对图片等资源，目录边界限定在 `_工作文件/` 内。
 
 ---
 

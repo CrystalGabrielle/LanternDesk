@@ -21,7 +21,7 @@ jobs:
 
       - name: JavaScript syntax
         run: |
-          for f in server/*.js public/app.js public/office.js; do
+          for f in server/*.js public/app.js public/office.js public/notes.js; do
             node --check "$f" || exit 1
           done
           echo "JavaScript syntax OK"
@@ -79,6 +79,9 @@ jobs:
           bad = []
           for md in docs:
               s = open(md, encoding='utf8').read()
+              # 剥离围栏与行内代码片段，避免其中的示例链接被误判为文档链接
+              s = re.sub(r'```[\s\S]*?```', '', s)
+              s = re.sub(r'`[^`\n]*`', '', s)
               for target in re.findall(r'\]\(([^)#]+)(?:#[^)]*)?\)', s):
                   if target.startswith(('http://', 'https://', 'mailto:')):
                       continue

@@ -9,7 +9,7 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 const C = require('./core');
 
-const { db, now, getSetting, setSetting, BOOKS_ROOT, PUBLIC_ROOT, safeSeg } = C;
+const { db, now, getSetting, setSetting, BOOKS_ROOT, PUBLIC_ROOT, safeSeg, NOTE_EXTS } = C;
 const WORK_DIR = process.env.WORK_DIR || '_工作文件';
 const WORK_MIRROR_DIR = process.env.WORK_MIRROR_DIR || '_工作台分类';
 const WORK_ROOT = process.env.WORK_ROOT || path.join(PUBLIC_ROOT, WORK_DIR);
@@ -131,6 +131,19 @@ function officeText(abs, ext, limit = 200000) {
 
 function officeMeta(abs, ext) {
   const out = { created: '', title: '', creator: '', snippet: '' };
+  // 笔记 / 纯文本：读取开头片段供项目识别与列表摘要，不解析全文
+  if (NOTE_EXTS.includes(ext)) {
+    try {
+      const fd = fs.openSync(abs, 'r'), buf = Buffer.alloc(12000);
+      const n = fs.readSync(fd, buf, 0, buf.length, 0); fs.closeSync(fd);
+      out.snippet = buf.subarray(0, n).toString('utf8')
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ').trim().slice(0, 800);
+      const tm = /^#\s+(.+)$/m.exec(buf.subarray(0, n).toString('utf8'));
+      if (tm) out.title = tm[1].trim().slice(0, 80);
+    } catch {}
+    return out;
+  }
   if (!['docx', 'docm', 'pptx', 'pptm', 'xlsx', 'xlsm'].includes(ext)) return out;
   let buf;
   try { const st = fs.statSync(abs); if (st.size > 80 * 1024 * 1024) return out; buf = fs.readFileSync(abs); } catch { return out; }
@@ -185,7 +198,8 @@ function inferProject(rel, filename, snippet, known) {
   if (hit) return { name: hit, source: '项目库匹配' };
   const parts = rel.split('/').filter(Boolean);
   for (const seg of parts.slice(0, 3)) {
-    const p = clean(seg);
+    // 根目录散文件的「第一段」就是文件名本身，去掉扩展名避免项目名变成 xxx.md
+    const p = clean(seg === filename ? seg.replace(/\.[a-z0-9]{1,8}$/i, '') : seg);
     if (p && p.length >= 2 && p.length <= 24 && !looksLikeDate(p) &&
       !/^\d+$/.test(p) && !STOP.has(p.toLowerCase()) && !['年', '月'].includes(p)) {
       return { name: p, source: '目录推断' };
@@ -239,7 +253,9 @@ const DOC_TYPES = [
   ['计划 / 排期', ['计划', '排期', '甘特', 'roadmap', '里程碑']],
   ['通知 / 公文', ['通知', '公告', '函', '发文', '制度']],
   ['简历 / 人事', ['简历', '招聘', '面试', '绩效', '人事']],
-  ['讲义 / 培训', ['培训', '讲义', '课件', '教程', 'handbook']]
+  ['讲义 / 培训', ['培训', '讲义', '课件', '教程', 'handbook']],
+  ['笔记 / 速记', ['笔记', 'note', 'memo', '速记', '随笔', '摘录', '日记', 'journal',
+    'todo', '待办', '大纲', 'outline', 'readme', 'changelog', 'faq', 'wiki']]
 ];
 function inferType(filename, rel) {
   const t = (filename + ' ' + rel).toLowerCase();
@@ -247,6 +263,7 @@ function inferType(filename, rel) {
   for (const [type, kws] of DOC_TYPES) if (kws.some(k => t.includes(k))) return type;
   if (['xlsx', 'xls', 'csv', 'et'].includes(ext)) return '数据 / 报表';
   if (['pptx', 'ppt', 'dps'].includes(ext)) return '汇报 / 总结';
+  if (NOTE_EXTS.includes(ext)) return '笔记 / 速记';
   return '其他文档';
 }
 const isJunk = n => n.startsWith('.') || n.startsWith('@') || n === '$RECYCLE.BIN' ||
