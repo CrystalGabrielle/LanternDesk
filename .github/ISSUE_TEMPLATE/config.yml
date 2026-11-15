@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: "📖 使用与部署文档"
-    url: https://github.com/<your-name>/lan-library/blob/main/docs/DEPLOYMENT.md
+    url: https://github.com/CrystalGabrielle/LanternDesk/blob/main/docs/DEPLOYMENT.md
     about: 安装、配置、备份、升级与排障问题请先查这里。
   - name: "🔌 API 与二次开发"
-    url: https://github.com/<your-name>/lan-library/blob/main/docs/API.md
+    url: https://github.com/CrystalGabrielle/LanternDesk/blob/main/docs/API.md
     about: 接口清单、数据结构与自动化脚本示例。
   - name: "🔒 报告安全漏洞（请勿公开提交）"
-    url: https://github.com/<your-name>/lan-library/security/advisories/new
+    url: https://github.com/CrystalGabrielle/LanternDesk/security/advisories/new
     about: 通过 GitHub 私有安全通告提交，说明见 SECURITY.md。

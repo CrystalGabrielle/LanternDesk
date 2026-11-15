@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         感谢反馈！提交前请先确认：
-        - 已看过 [部署与排障文档](https://github.com/<your-name>/lan-library/blob/main/docs/DEPLOYMENT.md) 中的常见问题；
-        - 这是**功能问题**。若涉及可绕过内网限制、读取资料目录以外的文件或删除原文件等安全漏洞，**请不要公开提交**，改按 [SECURITY.md](https://github.com/<your-name>/lan-library/blob/main/SECURITY.md) 私下报告；
+        - 已看过 [部署与排障文档](https://github.com/CrystalGabrielle/LanternDesk/blob/main/docs/DEPLOYMENT.md) 中的常见问题；
+        - 这是**功能问题**。若涉及可绕过内网限制、读取资料目录以外的文件或删除原文件等安全漏洞，**请不要公开提交**，改按 [SECURITY.md](https://github.com/CrystalGabrielle/LanternDesk/blob/main/SECURITY.md) 私下报告；
         - 描述中不要粘贴 `.env`、API Key、容器日志里的内网地址等私有信息。
 
   - type: dropdown

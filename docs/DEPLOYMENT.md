@@ -106,7 +106,7 @@ curl -s http://<HOST_IP>:8090/api/state | head -c 400
 ## 3. 普通 Linux 主机 / 家庭服务器
 
 ```bash
-git clone https://github.com/<your-name>/lantern-desk.git
+git clone https://github.com/CrystalGabrielle/LanternDesk.git
 cd lantern-desk
 cp .env.example .env
 ```

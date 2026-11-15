@@ -183,7 +183,7 @@ FIGMA_SHARE_URL = <把 Figma 文件 / Community 的公开分享链接粘贴到�
 ### 方式 A：Docker Compose（推荐，通用）
 
 ```bash
-git clone https://github.com/<your-name>/lantern-desk.git
+git clone https://github.com/CrystalGabrielle/LanternDesk.git
 cd lantern-desk
 
 cp .env.example .env         # 然后按下面「配置说明」修改
@@ -579,27 +579,19 @@ PDF 首页封面由浏览器首次打开时渲染并回传缓存，稍等片刻�
 
 ---
 
-## 📦 发布到自己的 GitHub
+## 📦 仓库镜像
 
-仓库里凡是出现 `<your-name>` 的地方都是**占位符**（README / CONTRIBUTING / CHANGELOG / `.github/ISSUE_TEMPLATE/config.yml` 等），首次发布前替换成你的 GitHub 用户名即可：
+本项目同步发布在以下平台（同一份代码，GitHub 为主仓库）：
 
-```bash
-# Linux / macOS
-grep -rl '<your-name>' . --exclude-dir=.git | xargs sed -i 's/<your-name>/YOUR_GITHUB_NAME/g'
+| 平台 | 地址 |
+| --- | --- |
+| **GitHub（主）** | https://github.com/CrystalGabrielle/LanternDesk |
+| Gitee | https://gitee.com/CrystalGabrielle/lantern-desk |
 
-# Windows PowerShell
-Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' } |
-  ForEach-Object { (Get-Content $_.FullName -Raw) -replace '<your-name>','YOUR_GITHUB_NAME' |
-                   Set-Content $_.FullName -NoNewline }
-```
-
-然后：
+要复刻到自己的仓库，克隆后改掉文档里的仓库链接、按需保留或删除 `.github/`，然后：
 
 ```bash
-git init -b main
 git status --short            # 确认没有 .env / data / *.db / 截图
-git add .
-git commit -m "chore: initial open-source release (v0.3.0)"
 git remote add origin https://github.com/YOUR_GITHUB_NAME/lantern-desk.git
 git push -u origin main
 ```
@@ -608,7 +600,7 @@ git push -u origin main
 
 1. 把 [Figma 展示板](#-figma-设计展示)导入自己的 Figma，把公开分享链接替换 `FIGMA_SHARE_URL` 一行。
 2. 在仓库设置里开启 **Private vulnerability reporting**（与 [SECURITY.md](SECURITY.md) 对应）。
-3. 按 [CHANGELOG](CHANGELOG.md) 打一个 `v0.3.0` tag。CI 会自动跑语法检查、私有配置检查、SVG 校验和镜像构建。
+3. 按 [CHANGELOG](CHANGELOG.md) 打一个 `v0.4.0` tag。CI 会自动跑语法检查、私有配置检查、SVG 校验和镜像构建。
 
 ---
 

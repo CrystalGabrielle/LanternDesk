@@ -17,7 +17,7 @@
 ## 开发环境
 
 ```bash
-git clone https://github.com/<your-name>/lantern-desk.git
+git clone https://github.com/CrystalGabrielle/LanternDesk.git
 cd lantern-desk
 cp .env.example .env
 mkdir -p /tmp/ll-dev/books/小说 /tmp/ll-dev/data /tmp/ll-dev/public
