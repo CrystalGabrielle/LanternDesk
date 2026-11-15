@@ -42,12 +42,15 @@ jobs:
       - name: Validate SVG diagrams
         run: |
           python3 - <<'PY'
-          import glob, xml.etree.ElementTree as ET
+          import glob, os, xml.etree.ElementTree as ET
           files = sorted(glob.glob('docs/images/*.svg'))
           assert files, 'no SVG diagrams found'
           for p in files:
               ET.parse(p)
-          print('valid SVG:', len(files), 'files')
+              png = p[:-4] + '.png'
+              assert os.path.exists(png) and os.path.getsize(png) > 1000, \
+                  f'missing PNG preview for {p}'
+          print('valid SVG + PNG preview:', len(files), 'pairs')
           PY
 
       - name: Check local documentation links

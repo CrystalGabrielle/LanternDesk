@@ -60,37 +60,39 @@ LAN Library turns an existing folder of study materials into a private, LAN-only
 
 ## 🧭 示意图
 
+> 每张图都有两份：`docs/images/*.png` 用于 README 预览（兼容所有 Markdown 渲染器），`docs/images/*.svg` 是可编辑的矢量源。改图时编辑 SVG 后重新导出 PNG 即可。
+
 ### 1. 系统架构
 
-![LAN Library 系统架构](docs/images/architecture.svg)
+![LAN Library 系统架构](docs/images/architecture.png)
 
 客户端只需浏览器；容器内部由 HTTP 服务、扫描/分类引擎、SQLite 与封面服务组成；资料目录以 bind mount 挂入，原件只读索引。右侧的 AI 服务是**唯一可选外连**，不配置时整套系统完全离线。
 
 ### 2. 目录层级与套书聚合
 
-![目录层级整理示意](docs/images/hierarchy.svg)
+![目录层级整理示意](docs/images/hierarchy.png)
 
 截图里「第03回」被平铺摊开的问题，根因是旧版按分类平铺 6000+ 文件。现在按磁盘目录链建树：同一套漫画的 9 个分回收进一张「套书」卡片，另一套的 2 卷各自独立，互不混淆。分类镜像也保留同样的层级。
 
 ### 3. 数据流动
 
-![跨端续读与自动扫描](docs/images/sync.svg)
+![跨端续读与自动扫描](docs/images/sync.png)
 
 阅读进度、书签、书架都是服务端数据库记录；扫描只对比元数据，不读取文件内容，几千个文件的增量扫描通常在 1 秒内完成。
 
 ### 4. 内网安全边界
 
-![仅内网访问的安全边界](docs/images/security.svg)
+![仅内网访问的安全边界](docs/images/security.png)
 
 ### 5. 响应式界面
 
-![桌面与手机端界面线框示意](docs/images/responsive-ui.svg)
+![桌面与手机端界面线框示意](docs/images/responsive-ui.png)
 
 ### 部署流程（Mermaid）
 
 ```mermaid
 flowchart LR
-    A["克隆仓库"] --> B["复制 .env.example 为 .env<br/>填写内网 IP 与资料路径"]
+    A["克隆仓库"] --> B["复制 .env.example 为 .env 并填写配置"]
     B --> C["docker compose up -d --build"]
     C --> D["首次全量扫描建索引"]
     D --> E["浏览器访问 http://内网IP:8090"]
